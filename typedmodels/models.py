@@ -6,7 +6,10 @@ class TypedModelManager(models.Manager):
     def get_query_set(self):
         qs = super(TypedModelManager, self).get_query_set()
         if hasattr(self.model, '_typedmodels_type'):
-            qs = qs.filter(type=self.model._typedmodels_type)
+            if len(self.model._typedmodels_subtypes) > 1:
+                qs = qs.filter(type__in=self.model._typedmodels_subtypes)
+            else:
+                qs = qs.filter(type=self.model._typedmodels_type)
         return qs
 
 
@@ -21,10 +24,16 @@ class TypedModelMetaclass(ModelBase):
             # don't do anything for TypedModel class itself
             return super(TypedModelMetaclass, meta).__new__(meta, classname, bases, classdict)
 
-        # look for a base class that is a subclass of TypedModel
-        for base_class in reversed(bases):
+        # look for a non-proxy base class that is a subclass of TypedModel
+        mro = list(bases)
+        while mro:
+            base_class = mro.pop(-1)
             if issubclass(base_class, TypedModel) and base_class is not TypedModel:
-                break
+                if base_class._meta.proxy:
+                    # continue up the mro looking for non-proxy base classes
+                    mro.extend(base_class.__bases__)
+                else:
+                    break
         else:
             base_class = None
 
@@ -56,12 +65,21 @@ class TypedModelMetaclass(ModelBase):
             opts = cls._meta
             typ = "%s.%s" % (opts.app_label, opts.object_name.lower())
             cls._typedmodels_type = typ
+            cls._typedmodels_subtypes = [typ]
             if typ in base_class._typedmodels_registry:
-                raise ValueError("Can't register %s type %r to %r (already registered to %r )" % (typ, classname, base_class._typedmodels_types))
+                raise ValueError("Can't register %s type %r to %r (already registered to %r )" % (typ, classname, base_class._typedmodels_registry))
             base_class._typedmodels_registry[typ] = cls
             type_name = getattr(cls._meta, 'verbose_name', cls.__name__)
             type_field = base_class._meta.get_field('type')
             type_field._choices = tuple(list(type_field.choices) + [(typ, type_name)])
+
+            # look for any other proxy superclasses, they'll need to know
+            # about this subclass
+            for superclass in cls.mro():
+                if (issubclass(superclass, base_class)
+                        and superclass not in (cls, base_class)
+                        and hasattr(superclass, '_typedmodels_type')):
+                    superclass._typedmodels_subtypes.append(typ)
 
             # need to populate local_fields, otherwise no fields get serialized in fixtures
             cls._meta.local_fields = base_class._meta.local_fields[:]

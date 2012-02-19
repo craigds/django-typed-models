@@ -24,3 +24,11 @@ class Canine(Animal):
 class Feline(Animal):
     def say_something(self):
         return "meoww"
+
+
+class BigCat(Feline):
+    """
+    This model tests doubly-proxied models.
+    """
+    def say_something(self):
+        return "roar"
