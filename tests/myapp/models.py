@@ -32,3 +32,11 @@ class BigCat(Feline):
     """
     def say_something(self):
         return "roar"
+
+
+class AngryBigCat(BigCat):
+    """
+    This model tests triple-proxied models. Because we can
+    """
+    def say_something(self):
+        return "raawr"
