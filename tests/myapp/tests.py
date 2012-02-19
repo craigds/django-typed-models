@@ -10,7 +10,7 @@ class SetupStuff(TestCase):
         Canine.objects.create(name="fido")
 
 
-class TestBaseModel(SetupStuff):
+class TestTypedModels(SetupStuff):
     def test_cant_instantiate_base_model(self):
         # direct instantiation shouldn't work
         self.assertRaises(RuntimeError, Animal.objects.create, name="uhoh")
@@ -25,4 +25,21 @@ class TestBaseModel(SetupStuff):
             pass
 
     def test_base_model_queryset(self):
-        self.assertEqual(Animal.objects.count(), 3)
+        # all objects returned
+        qs = Animal.objects.all().order_by('type')
+        self.assertEqual(len(qs), 3)
+        self.assertEqual([obj.type for obj in qs], ['myapp.canine', 'myapp.feline', 'myapp.feline'])
+        self.assertEqual([type(obj) for obj in qs], [Canine, Feline, Feline])
+
+    def test_proxy_model_queryset(self):
+        qs = Canine.objects.all()
+        self.assertEqual(qs.count(), 1)
+        self.assertEqual(len(qs), 1)
+        self.assertEqual([obj.type for obj in qs], ['myapp.canine'])
+        self.assertEqual([type(obj) for obj in qs], [Canine])
+
+        qs = Feline.objects.all()
+        self.assertEqual(qs.count(), 2)
+        self.assertEqual(len(qs), 2)
+        self.assertEqual([obj.type for obj in qs], ['myapp.feline', 'myapp.feline'])
+        self.assertEqual([type(obj) for obj in qs], [Feline, Feline])

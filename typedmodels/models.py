@@ -5,8 +5,8 @@ from django.db.models.base import ModelBase
 class TypedModelManager(models.Manager):
     def get_query_set(self):
         qs = super(TypedModelManager, self).get_query_set()
-        if hasattr(self.model, 'TYPE'):
-            qs = qs.filter(type=self.model.TYPE)
+        if hasattr(self.model, '_typedmodels_type'):
+            qs = qs.filter(type=self.model._typedmodels_type)
         return qs
 
 
