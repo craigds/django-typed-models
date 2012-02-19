@@ -50,6 +50,7 @@ An example says a bunch of words::
 			return "meoww"
 
 ::
+	
 	# later
 	>>> from myapp.models import Animal, Canine, Feline
 	>>> Feline.objects.create(name="kitteh")
