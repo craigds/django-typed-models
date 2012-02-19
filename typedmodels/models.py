@@ -21,15 +21,17 @@ class TypedModelMetaclass(ModelBase):
             # don't do anything for TypedModel class itself
             return super(TypedModelMetaclass, meta).__new__(meta, classname, bases, classdict)
 
-        typ = classdict.get('TYPE', None)
-        if typ is not None:
-            if not isinstance(typ, basestring):
-                raise ValueError("TYPE should be a unicode (got: %r)" % typ)
+        # look for a base class that is a subclass of TypedModel
+        for base_class in reversed(bases):
+            if issubclass(base_class, TypedModel) and base_class is not TypedModel:
+                break
+        else:
+            base_class = None
 
-            # Enforce that typed subclasses are proxy models.
+        if base_class:
+            # Enforce that subclasses are proxy models.
             # Update an existing metaclass, or define an empty one
             # then set proxy=True
-
             class Meta:
                 pass
             Meta = classdict.get('Meta', Meta)
@@ -37,10 +39,8 @@ class TypedModelMetaclass(ModelBase):
 
             # set app_label to the same as the base class, unless explicitly defined otherwise
             if not hasattr(Meta, 'app_label'):
-                for base in bases:
-                    if hasattr(getattr(base, '_meta', None), 'app_label'):
-                        Meta.app_label = base._meta.app_label
-                        break
+                if hasattr(getattr(base_class, '_meta', None), 'app_label'):
+                    Meta.app_label = base_class._meta.app_label
 
             classdict.update({
                 'Meta': Meta,
@@ -52,25 +52,22 @@ class TypedModelMetaclass(ModelBase):
 
         cls = super(TypedModelMetaclass, meta).__new__(meta, classname, bases, classdict)
 
-        base = None
-        if typ:
-            for base in cls.mro():
-                if issubclass(base, TypedModel) and not hasattr(base, 'TYPE'):
-                    break
-            else:
-                raise ValueError("A typed TypedModel must be a subclass of an untyped non-abstract base")
-            if typ in base._autocast_types:
-                raise ValueError("Can't register %s type %r to %r (already registered to %r )" % (typ, classname, base._autocast_types))
-            base._autocast_types[typ] = cls
+        if base_class:
+            opts = cls._meta
+            typ = "%s.%s" % (opts.app_label, opts.object_name.lower())
+            cls._typedmodels_type = typ
+            if typ in base_class._typedmodels_registry:
+                raise ValueError("Can't register %s type %r to %r (already registered to %r )" % (typ, classname, base_class._typedmodels_types))
+            base_class._typedmodels_registry[typ] = cls
             type_name = getattr(cls._meta, 'verbose_name', cls.__name__)
-            type_field = base._meta.get_field('type')
+            type_field = base_class._meta.get_field('type')
             type_field._choices = tuple(list(type_field.choices) + [(typ, type_name)])
 
             # need to populate local_fields, otherwise no fields get serialized in fixtures
-            cls._meta.local_fields = base._meta.local_fields[:]
+            cls._meta.local_fields = base_class._meta.local_fields[:]
         else:
             # this is the base class
-            cls._autocast_types = {}
+            cls._typedmodels_registry = {}
 
             # set default manager. this will be inherited by subclasses, since they are proxy models
             cls.add_to_class('objects', TypedModelManager())
@@ -78,35 +75,47 @@ class TypedModelMetaclass(ModelBase):
 
             # add a get_type_classes classmethod to allow fetching of all the subclasses (useful for admin)
 
-            def get_type_classes(cls_):
-                if cls_ is not cls:
-                    raise ValueError("get_type_classes() is not accessible from subclasses of %s (was called from %s)" % (cls.__name__, cls_.__name__))
-                return cls._autocast_types.values()[:]
+            def get_type_classes(subcls):
+                if subcls is not cls:
+                    raise ValueError("get_type_classes() is not accessible from subclasses of %s (was called from %s)" % (cls.__name__, subcls.__name__))
+                return cls._typedmodels_registry.values()[:]
             cls.get_type_classes = classmethod(get_type_classes)
         return cls
 
 
 class TypedModel(models.Model):
-    """
+    '''
     This class contains the functionality required to auto-downcast a model based
     on its ``type`` attribute.
 
     To use, simply subclass TypedModel for your base type, and then subclass
     that for your concrete types.
 
-    Each concrete type should specify a unique TYPE attribute (must be a string)
+    Example usage::
 
-    Example usage:
+        from django.db import models
+        from typedmodels import TypedModel
 
         class Animal(TypedModel):
-            some_field = models.CharField(max_length=100)
+            """
+            Abstract model
+            """
+            name = models.CharField(max_length=255)
+
+            def say_something(self):
+                raise NotImplemented
+
+            def __repr__(self):
+                return u'<%s: %s>' % (self.__class__.__name__, self.name)
 
         class Canine(Animal):
-            TYPE = "datasources.canine"
+            def say_something(self):
+                return "woof"
 
-        class Bovine(Animal):
-            TYPE = "datasources.bovine"
-    """
+        class Feline(Animal):
+            def say_something(self):
+                return "meoww"
+    '''
 
     __metaclass__ = TypedModelMetaclass
 
@@ -121,21 +130,21 @@ class TypedModel(models.Model):
 
     def recast(self):
         if not self.type:
-            if not hasattr(self, 'TYPE'):
+            if not hasattr(self, '_typedmodels_type'):
                 # Ideally we'd raise an error here, but the django admin likes to call
                 # model() and doesn't expect an error.
                 # Instead, we raise an error when the object is saved.
                 return
-            self.type = self.TYPE
+            self.type = self._typedmodels_type
 
         for base in self.__class__.mro():
-            if issubclass(base, TypedModel) and hasattr(base, '_autocast_types'):
+            if issubclass(base, TypedModel) and hasattr(base, '_typedmodels_registry'):
                 break
         else:
             raise ValueError("No suitable base class found to recast!")
 
         try:
-            correct_cls = base._autocast_types[self.type]
+            correct_cls = base._typedmodels_registry[self.type]
         except KeyError:
             raise ValueError("Invalid %s identifier : %r" % (base.__name__, self.type))
 
@@ -143,6 +152,6 @@ class TypedModel(models.Model):
             self.__class__ = correct_cls
 
     def save(self, *args, **kwargs):
-        if not getattr(self, 'TYPE', None):
+        if not getattr(self, '_typedmodels_type', None):
             raise RuntimeError("Untyped %s cannot be saved." % self.__class__.__name__)
         return super(TypedModel, self).save(*args, **kwargs)
