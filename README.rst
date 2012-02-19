@@ -5,14 +5,19 @@ django-typed-models
 Intro
 =====
 
-`django-typed-models` provides an extra type of model inheritance for django.
+``django-typed-models`` provides an extra type of model inheritance for django.
 
 The concrete type of each object is stored in the database, and when the object is retrieved it is automatically cast to the correct concrete type. These are basically proxy models, but with a known type.
 
- * Automatic downcasting of models from querysets
- * All models subclassing a common base are stored in the same table
- * object types are stored in a 'type' field in the database
- * No extra queries or joins to retrieve multiple types
+
+Features
+========
+
+* Automatic downcasting of models from querysets
+* All models subclassing a common base are stored in the same table
+* object types are stored in a 'type' field in the database
+* No extra queries or joins to retrieve multiple types
+
 
 Usage:
 ======
