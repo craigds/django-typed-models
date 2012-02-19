@@ -66,7 +66,13 @@ An example says a bunch of words::
     [<Feline: kitteh>, <Feline: cheetah>]
 
 
-Restrictions
-============
+Limitations
+===========
 
 These are just special proxy models, so all the objects are stored in the same table. As a result, subclasses can't have new fields defined. If you need to do that, you should just use django's built-in multiple-table inheritance.
+
+Requirements
+============
+
+Python 2.5+ (tested in 2.6)
+Django 1.2+ (tested in 1.3)
