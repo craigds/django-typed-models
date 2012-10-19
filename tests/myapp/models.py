@@ -12,8 +12,11 @@ class Animal(TypedModel):
     def say_something(self):
         raise NotImplemented
 
-    def __repr__(self):
-        return u'<%s: %s>' % (self.__class__.__name__, self.name)
+    # def __repr__(self):
+    #     return u'<%s: %s>' % (self.__class__.__name__, self.name)
+
+    def __unicode__(self):
+        return unicode(self.name)
 
 
 class Canine(Animal):
@@ -25,11 +28,16 @@ class Feline(Animal):
     def say_something(self):
         return "meoww"
 
+    mice_eaten = models.IntegerField(
+        default = 0
+        )
+    
 
 class BigCat(Feline):
     """
     This model tests doubly-proxied models.
     """
+
     def say_something(self):
         return "roar"
 

@@ -1,6 +1,6 @@
 from django.db import models
 from django.db.models.base import ModelBase
-
+from django.db.models.fields import Field
 
 class TypedModelManager(models.Manager):
     def get_query_set(self):
@@ -22,7 +22,13 @@ class TypedModelMetaclass(ModelBase):
             TypedModel
         except NameError:
             # don't do anything for TypedModel class itself
-            return super(TypedModelMetaclass, meta).__new__(meta, classname, bases, classdict)
+            #
+            # ...except updating Meta class to instantiate fields_from_subclasses attribute
+            typed_model = super(TypedModelMetaclass, meta).__new__(meta, classname, bases, classdict)
+            # We have to set this attribute after _meta has been created, otherwise an
+            # exception would be thrown by Options class constructor.
+            typed_model._meta.fields_from_subclasses = {}
+            return typed_model
 
         # look for a non-proxy base class that is a subclass of TypedModel
         mro = list(bases)
@@ -46,6 +52,14 @@ class TypedModelMetaclass(ModelBase):
             Meta = classdict.get('Meta', Meta)
             Meta.proxy = True
 
+            declared_fields = dict((name, element) for name, element in classdict.items() if isinstance(element, Field))
+
+            for field_name, field in declared_fields.items():
+                field.null = True
+                field.contribute_to_class(base_class, field_name)
+                classdict.pop(field_name)
+            base_class._meta.fields_from_subclasses.update(declared_fields)
+
             # set app_label to the same as the base class, unless explicitly defined otherwise
             if not hasattr(Meta, 'app_label'):
                 if hasattr(getattr(base_class, '_meta', None), 'app_label'):
@@ -55,11 +69,10 @@ class TypedModelMetaclass(ModelBase):
                 'Meta': Meta,
             })
 
-            # TODO enforce that typed subclasses cannot have defined fields
-            # (since that's not obvious if the user isn't explicitly defining proxy=True)
-            pass
 
         cls = super(TypedModelMetaclass, meta).__new__(meta, classname, bases, classdict)
+
+        cls._meta.fields_from_subclasses = {}
 
         if base_class:
             opts = cls._meta
@@ -73,6 +86,8 @@ class TypedModelMetaclass(ModelBase):
             type_field = base_class._meta.get_field('type')
             type_field._choices = tuple(list(type_field.choices) + [(typ, type_name)])
 
+            cls._meta.declared_fields = declared_fields
+
             # look for any other proxy superclasses, they'll need to know
             # about this subclass
             for superclass in cls.mro():
@@ -81,8 +96,25 @@ class TypedModelMetaclass(ModelBase):
                         and hasattr(superclass, '_typedmodels_type')):
                     superclass._typedmodels_subtypes.append(typ)
 
-            # need to populate local_fields, otherwise no fields get serialized in fixtures
-            cls._meta.local_fields = base_class._meta.local_fields[:]
+            # Overriding _fill_fields_cache function in Meta class
+            def _fill_fields_cache(self):
+                cache = []
+                for parent in self.parents:
+                    for field, model in parent._meta.get_fields_with_model():
+                        if model:
+                            cache.append((field, model))
+                        else:
+                            cache.append((field, parent))
+                # Only fields defined by this class and its ancestors
+                
+                cache.extend([(f, None) for f in self.local_fields if (not f in base_class._meta.fields_from_subclasses or f in self.declared_fields)])
+                self._field_cache = tuple(cache)
+                self._field_name_cache = [x for x, _ in cache]
+
+
+            # No, no, no. This is wrong as it duplicates fields in _meta.fields:
+            # # need to populate local_fields, otherwise no fields get serialized in fixtures
+            # cls._meta.local_fields = base_class._meta.local_fields[:]
         else:
             # this is the base class
             cls._typedmodels_registry = {}
@@ -155,6 +187,16 @@ class TypedModel(models.Model):
         super(TypedModel, self).__init__(*args, **kwargs)
         self.recast()
 
+    def __getattr__(self, name):
+        # Some functions (like save()) need to access field values even if they are removed from fields list
+        # 
+        # This is very, very temporary:
+        if name=='mice_eaten':
+            return None
+        # How to call 'super' on a subclass of TypedModel without getting recursion error?
+
+        raise AttributeError
+        
     def recast(self):
         if not self.type:
             if not hasattr(self, '_typedmodels_type'):
