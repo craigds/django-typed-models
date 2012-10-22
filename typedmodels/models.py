@@ -191,8 +191,13 @@ class TypedModel(models.Model):
         # Calling __init__ on base class because some functions (e.g. save()) need access to field values from base
         # class.
         if self.base_class:
+            before_class = self.__class__
             self.__class__ = self.base_class
+        else:
+            before_class = None
         super(TypedModel, self).__init__(*args, **kwargs)
+        if before_class:
+            self.__class__ = before_class
         if self._auto_recast:
             self.recast()
 
