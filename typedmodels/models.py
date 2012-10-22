@@ -69,6 +69,7 @@ class TypedModelMetaclass(ModelBase):
                 'Meta': Meta,
             })
 
+        classdict['base_class'] = base_class
 
         cls = super(TypedModelMetaclass, meta).__new__(meta, classname, bases, classdict)
 
@@ -180,23 +181,21 @@ class TypedModel(models.Model):
 
     type = models.CharField(choices=(), max_length=255, null=False, blank=False, db_index=True)
 
+    # Class variable indicating if model should be automatically recasted after initialization
+    _auto_recast = True
+
     class Meta:
         abstract = True
 
     def __init__(self, *args, **kwargs):
+        # Calling __init__ on base class because some functions (e.g. save()) need access to field values from base
+        # class.
+        if self.base_class:
+            self.__class__ = self.base_class
         super(TypedModel, self).__init__(*args, **kwargs)
-        self.recast()
+        if self._auto_recast:
+            self.recast()
 
-    def __getattr__(self, name):
-        # Some functions (like save()) need to access field values even if they are removed from fields list
-        # 
-        # This is very, very temporary:
-        if name=='mice_eaten':
-            return None
-        # How to call 'super' on a subclass of TypedModel without getting recursion error?
-
-        raise AttributeError
-        
     def recast(self):
         if not self.type:
             if not hasattr(self, '_typedmodels_type'):
