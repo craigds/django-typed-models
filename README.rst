@@ -5,10 +5,9 @@ django-typed-models
 Intro
 =====
 
-``django-typed-models`` provides an extra type of model inheritance for django.
+``django-typed-models`` provides an extra type of model inheritance for Django. It is similar to single-table inheritance in Ruby on Rails.
 
-The concrete type of each object is stored in the database, and when the object is retrieved it is automatically cast to the correct concrete type. These are basically proxy models, but with a known type.
-
+The concrete type of each object is stored in the database, and when the object is retrieved it is automatically cast to the correct concrete type.
 
 Features
 ========
@@ -46,12 +45,16 @@ An example says a bunch of words::
             return "woof"
     
     class Feline(Animal):
+        mice_eaten = models.IntegerField(
+    	    default = 0
+            )
+    
         def say_something(self):
             return "meoww"
 
 ::
     
-    # later
+   # later
     >>> from myapp.models import Animal, Canine, Feline
     >>> Feline.objects.create(name="kitteh")
     >>> Feline.objects.create(name="cheetah")
@@ -69,11 +72,11 @@ An example says a bunch of words::
 Limitations
 ===========
 
-These are just special proxy models, so all the objects are stored in the same table. As a result, subclasses can't have new fields defined. If you need to do that, you should just use django's built-in multiple-table inheritance.
+Since all objects are stored in the same table, all fields defined in subclasses are nullable.
 
 Requirements
 ============
 
 * Python 2.5+ (tested in 2.6)
 
-* Django 1.2+ (tested in 1.3)
+* Django 1.2+ (tested in 1.4)
