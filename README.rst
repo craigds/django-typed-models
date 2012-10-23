@@ -82,6 +82,6 @@ Known issues
 Requirements
 ============
 
-* Python 2.5+ (tested in 2.6)
+* Python 2.5+ (tested in 2.7)
 
 * Django 1.2+ (tested in 1.4)
