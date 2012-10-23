@@ -56,6 +56,9 @@ class TypedModelMetaclass(ModelBase):
 
             for field_name, field in declared_fields.items():
                 field.null = True
+                if isinstance(field, models.fields.related.RelatedField) and isinstance(field.rel.to, TypedModel) and field.rel.to.base_class:
+                        field.rel.limit_choices_to['type__in'] = field.rel.to._typedmodels_subtypes
+                        field.rel.to = field.rel.to.base_class
                 field.contribute_to_class(base_class, field_name)
                 classdict.pop(field_name)
             base_class._meta.fields_from_subclasses.update(declared_fields)
@@ -136,6 +139,9 @@ class TypedModelMetaclass(ModelBase):
             # add a get_type_classes classmethod to allow fetching of all the subclasses (useful for admin)
 
             def get_type_classes(subcls):
+                # This is a bit inconsistent since there is _typedmodels_subtypes
+                # attribute on subclasses. Perhaps it should be unified to achieve
+                # similar behavior on both root class and it's subclasses.
                 if subcls is not cls:
                     raise ValueError("get_type_classes() is not accessible from subclasses of %s (was called from %s)" % (cls.__name__, subcls.__name__))
                 return cls._typedmodels_registry.values()[:]

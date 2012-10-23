@@ -46,5 +46,9 @@ class AngryBigCat(BigCat):
     """
     This model tests triple-proxied models. Because we can
     """
+    canines_eaten = models.ManyToManyField(
+        Canine
+        )
+
     def say_something(self):
         return "raawr"
