@@ -34,27 +34,27 @@ class TestTypedModels(SetupStuff):
         self.assertEqual([type(obj) for obj in qs], [AngryBigCat, BigCat, Canine, Feline, Feline])
 
     def test_proxy_model_queryset(self):
-        qs = Canine.objects.all()
+        qs = Canine.objects.all().order_by('type')
         self.assertEqual(qs.count(), 1)
         self.assertEqual(len(qs), 1)
         self.assertEqual([obj.type for obj in qs], ['typedmodels.canine'])
         self.assertEqual([type(obj) for obj in qs], [Canine])
 
-        qs = Feline.objects.all()
+        qs = Feline.objects.all().order_by('type')
         self.assertEqual(qs.count(), 4)
         self.assertEqual(len(qs), 4)
         self.assertEqual([obj.type for obj in qs], ['typedmodels.angrybigcat', 'typedmodels.bigcat', 'typedmodels.feline', 'typedmodels.feline'])
         self.assertEqual([type(obj) for obj in qs], [AngryBigCat, BigCat, Feline, Feline])
 
     def test_doubly_proxied_model_queryset(self):
-        qs = BigCat.objects.all()
+        qs = BigCat.objects.all().order_by('type')
         self.assertEqual(qs.count(), 2)
         self.assertEqual(len(qs), 2)
         self.assertEqual([obj.type for obj in qs], ['typedmodels.angrybigcat', 'typedmodels.bigcat'])
         self.assertEqual([type(obj) for obj in qs], [AngryBigCat, BigCat])
 
     def test_triply_proxied_model_queryset(self):
-        qs = AngryBigCat.objects.all()
+        qs = AngryBigCat.objects.all().order_by('type')
         self.assertEqual(qs.count(), 1)
         self.assertEqual(len(qs), 1)
         self.assertEqual([obj.type for obj in qs], ['typedmodels.angrybigcat'])
