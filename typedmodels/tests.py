@@ -59,3 +59,16 @@ class TestTypedModels(SetupStuff):
         self.assertEqual(len(qs), 1)
         self.assertEqual([obj.type for obj in qs], ['typedmodels.angrybigcat'])
         self.assertEqual([type(obj) for obj in qs], [AngryBigCat])
+
+    def test_fields_in_subclasses(self):
+        canine = Canine.objects.all()[0]
+        angry = AngryBigCat.objects.all()[0]
+
+        angry.mice_eaten = 5
+        angry.save()
+        self.assertEqual(AngryBigCat.objects.get(pk=angry.pk).mice_eaten, 5)
+        
+        angry.canines_eaten.add(canine)
+        self.assertEqual(list(angry.canines_eaten.all()), [canine])
+
+        
