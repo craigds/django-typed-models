@@ -74,6 +74,11 @@ Limitations
 
 Since all objects are stored in the same table, all fields defined in subclasses are nullable.
 
+Known issues
+============
+
+* Error in South migration when m2m field related to model not inheriting directly from TypedModel is used
+
 Requirements
 ============
 
