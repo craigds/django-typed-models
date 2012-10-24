@@ -1,3 +1,5 @@
+import types
+
 from django.db import models
 from django.db.models.base import ModelBase
 from django.db.models.fields import Field
@@ -44,6 +46,12 @@ class TypedModelMetaclass(ModelBase):
             base_class = None
 
         if base_class:
+            if not hasattr(base_class, 'original'):
+                class original_meta:
+                    proxy = True
+                Original = super(TypedModelMetaclass, meta).__new__(meta, base_class.__name__+'Original', (base_class,), {'Meta': original_meta, '__module__': base_class.__module__})
+                base_class._meta.original = Original
+            
             # Enforce that subclasses are proxy models.
             # Update an existing metaclass, or define an empty one
             # then set proxy=True
@@ -100,20 +108,28 @@ class TypedModelMetaclass(ModelBase):
                         and hasattr(superclass, '_typedmodels_type')):
                     superclass._typedmodels_subtypes.append(typ)
 
-            # Overriding _fill_fields_cache function in Meta class
+            # Overriding _fill_fields_cache function in Meta.
+            # This is done by overriding method for specific instance of
+            # django.db.models.options.Options class, which generally should
+            # be avoided, but in this case it may be better than monkey patching
+            # Options or copy-pasting large parts of Django code.
             def _fill_fields_cache(self):
                 cache = []
                 for parent in self.parents:
                     for field, model in parent._meta.get_fields_with_model():
-                        if model:
-                            cache.append((field, model))
-                        else:
-                            cache.append((field, parent))
-                # Only fields defined by this class and its ancestors
-                
-                cache.extend([(f, None) for f in self.local_fields if (not f in base_class._meta.fields_from_subclasses or f in self.declared_fields)])
+                        if field in base_class._meta.original._meta.fields or any(field in ancestor._meta.declared_fields.values() for ancestor in cls.mro() if issubclass(ancestor, base_class) and not ancestor==base_class):
+                            if model:
+                                cache.append((field, model))
+                            else:
+                                cache.append((field, parent))
                 self._field_cache = tuple(cache)
                 self._field_name_cache = [x for x, _ in cache]
+            cls._meta._fill_fields_cache = types.MethodType(_fill_fields_cache, cls._meta, cls._meta.__class__)
+            if hasattr(cls._meta, '_field_name_cache'):
+                del cls._meta._field_name_cache
+            if hasattr(cls._meta, '_field_cache'):
+                del cls._meta._field_cache
+            cls._meta._fill_fields_cache()
 
 
             # No, no, no. This is wrong as it duplicates fields in _meta.fields:
@@ -122,6 +138,9 @@ class TypedModelMetaclass(ModelBase):
         else:
             # this is the base class
             cls._typedmodels_registry = {}
+
+            # Since fields may be added by subclasses, save original fields.
+            cls._meta.original_fields = cls._meta.fields
 
             # set default manager. this will be inherited by subclasses, since they are proxy models
             manager = None
