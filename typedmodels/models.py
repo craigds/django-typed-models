@@ -215,6 +215,16 @@ class TypedModel(models.Model):
     def __init__(self, *args, **kwargs):
         # Calling __init__ on base class because some functions (e.g. save()) need access to field values from base
         # class.
+
+        # Move args to kwargs since base_class may have more fields defined with different ordering
+        args = list(args)
+        if len(args) > len(self._meta.fields):
+            # Daft, but matches old exception sans the err msg.
+            raise IndexError("Number of args exceeds number of fields")
+        for field_value, field in zip(args, self._meta.fields):
+            kwargs[field.attname] = field_value
+            args.pop(0)
+            
         if self.base_class:
             before_class = self.__class__
             self.__class__ = self.base_class
