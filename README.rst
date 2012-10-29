@@ -9,6 +9,8 @@ Intro
 
 The concrete type of each object is stored in the database, and when the object is retrieved it is automatically cast to the correct concrete type. These are basically proxy models, but with a known type.
 
+Licensed under the New BSD License.
+
 
 Features
 ========
