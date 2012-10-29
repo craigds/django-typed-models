@@ -78,7 +78,7 @@ Known issues
 ============
 
 * Error in South migration when m2m field related to model not inheriting directly from TypedModel is used
-* Problems with relative imports
+* Problems with relative imports on some environments
 
 Requirements
 ============
