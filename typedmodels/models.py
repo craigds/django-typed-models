@@ -58,6 +58,10 @@ class TypedModelMetaclass(ModelBase):
             class Meta:
                 pass
             Meta = classdict.get('Meta', Meta)
+            if getattr(Meta, 'proxy', False):
+                # If user has specified proxy=True explicitly, we assume that he wants it to be treated like ordinary
+                # proxy class, without TypedModel logic.
+                return super(TypedModelMetaclass, meta).__new__(meta, classname, bases, classdict)
             Meta.proxy = True
 
             declared_fields = dict((name, element) for name, element in classdict.items() if isinstance(element, Field))
