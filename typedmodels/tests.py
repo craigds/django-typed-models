@@ -71,4 +71,11 @@ class TestTypedModels(SetupStuff):
         angry.canines_eaten.add(canine)
         self.assertEqual(list(angry.canines_eaten.all()), [canine])
 
+    def test_related_names(self):
+        '''Ensure that accessor names for reverse relations are generated properly.'''
+
+        canine = Canine.objects.all()[0]
+        self.assertTrue(hasattr(canine, 'angrybigcat_set'))
+        
+
         

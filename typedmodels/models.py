@@ -64,9 +64,21 @@ class TypedModelMetaclass(ModelBase):
 
             for field_name, field in declared_fields.items():
                 field.null = True
+                if isinstance(field, models.fields.related.RelatedField):
+                    # Monkey patching field instance to make do_related_class use created class instead of base_class.
+                    # Actually that class doesn't exist yet, so we just monkey patch base_class for a while,
+                    # changing _meta.object_name, so accessor names are generated properly.
+                    # We'll do more stuff when the class is created.
+                    old_do_related_class = field.do_related_class
+                    def do_related_class(self, other, cls):
+                        base_class_name = base_class.__name__
+                        cls._meta.object_name = classname
+                        old_do_related_class(other, cls)
+                        cls._meta.object_name = base_class_name
+                    field.do_related_class = types.MethodType(do_related_class, field, field.__class__)
                 if isinstance(field, models.fields.related.RelatedField) and isinstance(field.rel.to, TypedModel) and field.rel.to.base_class:
-                        field.rel.limit_choices_to['type__in'] = field.rel.to._typedmodels_subtypes
-                        field.rel.to = field.rel.to.base_class
+                    field.rel.limit_choices_to['type__in'] = field.rel.to._typedmodels_subtypes
+                    field.rel.to = field.rel.to.base_class
                 field.contribute_to_class(base_class, field_name)
                 classdict.pop(field_name)
             base_class._meta.fields_from_subclasses.update(declared_fields)
@@ -99,6 +111,12 @@ class TypedModelMetaclass(ModelBase):
             type_field._choices = tuple(list(type_field.choices) + [(typ, type_name)])
 
             cls._meta.declared_fields = declared_fields
+
+            # Update related fields in base_class so they refer to cls.
+            for field_name, related_field in filter(lambda (field_name, field): isinstance(field, models.fields.related.RelatedField), declared_fields.items()):
+                # Unfortunately RelatedObject is recreated in ./manage.py validate, so false positives for name clashes
+                # may be reported until #19399 is fixed - see https://code.djangoproject.com/ticket/19399
+                related_field.related.opts = cls._meta
 
             # look for any other proxy superclasses, they'll need to know
             # about this subclass
