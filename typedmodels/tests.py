@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from .test_models import AngryBigCat, Animal, BigCat, Canine, Feline
+from .test_models import AngryBigCat, Animal, BigCat, Canine, Feline, Parrot
 
 
 class SetupStuff(TestCase):
@@ -10,7 +10,7 @@ class SetupStuff(TestCase):
         Canine.objects.create(name="fido")
         BigCat.objects.create(name="simba")
         AngryBigCat.objects.create(name="mufasa")
-
+        Parrot.objects.create(name="Kajtek")
 
 class TestTypedModels(SetupStuff):
     def test_cant_instantiate_base_model(self):
@@ -29,9 +29,9 @@ class TestTypedModels(SetupStuff):
     def test_base_model_queryset(self):
         # all objects returned
         qs = Animal.objects.all().order_by('type')
-        self.assertEqual(len(qs), 5)
-        self.assertEqual([obj.type for obj in qs], ['typedmodels.angrybigcat', 'typedmodels.bigcat', 'typedmodels.canine', 'typedmodels.feline', 'typedmodels.feline'])
-        self.assertEqual([type(obj) for obj in qs], [AngryBigCat, BigCat, Canine, Feline, Feline])
+        self.assertEqual(len(qs), 6)
+        self.assertEqual([obj.type for obj in qs], ['typedmodels.angrybigcat', 'typedmodels.bigcat', 'typedmodels.canine', 'typedmodels.feline', 'typedmodels.feline', 'typedmodels.parrot'])
+        self.assertEqual([type(obj) for obj in qs], [AngryBigCat, BigCat, Canine, Feline, Feline, Parrot])
 
     def test_proxy_model_queryset(self):
         qs = Canine.objects.all().order_by('type')
@@ -71,11 +71,16 @@ class TestTypedModels(SetupStuff):
         angry.canines_eaten.add(canine)
         self.assertEqual(list(angry.canines_eaten.all()), [canine])
 
+        # Feline class was created before Parrot and has mice_eaten field which is non-m2m, so it may break accessing
+        # known_words field in Parrot instances (since Django 1.5).
+        parrot = Parrot.objects.all()[0]
+        parrot.known_words = 500
+        parrot.save()
+        self.assertEqual(Parrot.objects.get(pk=parrot.pk).known_words, 500)
+
     def test_related_names(self):
         '''Ensure that accessor names for reverse relations are generated properly.'''
 
         canine = Canine.objects.all()[0]
         self.assertTrue(hasattr(canine, 'angrybigcat_set'))
-        
-
         

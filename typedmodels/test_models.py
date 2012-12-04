@@ -23,7 +23,6 @@ class Canine(Animal):
     def say_something(self):
         return "woof"
 
-
 class Feline(Animal):
     def say_something(self):
         return "meoww"
@@ -52,3 +51,10 @@ class AngryBigCat(BigCat):
 
     def say_something(self):
         return "raawr"
+
+class Parrot(Animal):
+    known_words = models.IntegerField()
+
+    def say_something(self):
+        return "hello"
+
