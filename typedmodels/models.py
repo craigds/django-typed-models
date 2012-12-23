@@ -3,6 +3,7 @@ import types
 from django.db import models
 from django.db.models.base import ModelBase
 from django.db.models.fields import Field
+from django.utils.datastructures import SortedDict
 
 class TypedModelManager(models.Manager):
     def get_query_set(self):
@@ -51,6 +52,8 @@ class TypedModelMetaclass(ModelBase):
                     proxy = True
                 Original = super(TypedModelMetaclass, meta).__new__(meta, base_class.__name__+'Original', (base_class,), {'Meta': original_meta, '__module__': base_class.__module__})
                 base_class._meta.original = Original
+                # Fill m2m cache for original class now, so it doesn't contain fields from child classes.
+                base_class._meta.original._meta.many_to_many
             
             # Enforce that subclasses are proxy models.
             # Update an existing metaclass, or define an empty one
@@ -130,11 +133,12 @@ class TypedModelMetaclass(ModelBase):
                         and hasattr(superclass, '_typedmodels_type')):
                     superclass._typedmodels_subtypes.append(typ)
 
-            # Overriding _fill_fields_cache function in Meta.
+            # Overriding _fill_fields_cache and _fill_m2m_cache functions in Meta.
             # This is done by overriding method for specific instance of
             # django.db.models.options.Options class, which generally should
             # be avoided, but in this case it may be better than monkey patching
             # Options or copy-pasting large parts of Django code.
+
             def _fill_fields_cache(self):
                 cache = []
                 for parent in self.parents:
@@ -153,6 +157,22 @@ class TypedModelMetaclass(ModelBase):
                 del cls._meta._field_cache
             cls._meta._fill_fields_cache()
 
+            def _fill_m2m_cache(self):
+                cache = SortedDict()
+                for parent in self.parents:
+                    for field, model in parent._meta.get_m2m_with_model():
+                        if field in base_class._meta.original._meta.many_to_many or any(field in ancestor._meta.declared_fields.values() for ancestor in cls.mro() if issubclass(ancestor, base_class) and not ancestor==base_class):
+                            if model:
+                                cache[field] = model
+                            else:
+                                cache[field] = parent
+                for field in self.local_many_to_many:
+                    cache[field] = None
+                self._m2m_cache = cache
+            cls._meta._fill_m2m_cache = types.MethodType(_fill_m2m_cache, cls._meta, cls._meta.__class__)
+            if hasattr(cls._meta, '_m2m_cache'):
+                del cls._meta._m2m_cache
+            cls._meta._fill_m2m_cache()
 
             # No, no, no. This is wrong as it duplicates fields in _meta.fields:
             # # need to populate local_fields, otherwise no fields get serialized in fixtures
