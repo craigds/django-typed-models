@@ -78,6 +78,22 @@ class TestTypedModels(SetupStuff):
         parrot.save()
         self.assertEqual(Parrot.objects.get(pk=parrot.pk).known_words, 500)
 
+    def test_fields_cache(self):
+        mice_eaten = Feline._meta.get_field('mice_eaten')
+        known_words = Parrot._meta.get_field('known_words')
+        self.assertIn(mice_eaten, AngryBigCat._meta.fields)
+        self.assertIn(mice_eaten, Feline._meta.fields)
+        self.assertNotIn(mice_eaten, Parrot._meta.fields)
+        self.assertIn(known_words, Parrot._meta.fields)
+        self.assertNotIn(known_words, AngryBigCat._meta.fields)
+        self.assertNotIn(known_words, Feline._meta.fields)
+
+    def test_m2m_cache(self):
+        canines_eaten = AngryBigCat._meta.get_field_by_name('canines_eaten')[0]
+        self.assertIn(canines_eaten, AngryBigCat._meta.many_to_many)
+        self.assertNotIn(canines_eaten, Feline._meta.many_to_many)
+        self.assertNotIn(canines_eaten, Parrot._meta.many_to_many)
+        
     def test_related_names(self):
         '''Ensure that accessor names for reverse relations are generated properly.'''
 
