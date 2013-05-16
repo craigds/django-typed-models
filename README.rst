@@ -86,6 +86,6 @@ These are just special proxy models, so all the objects are stored in the same t
 Requirements
 ============
 
-* Python 2.5+ (tested in 2.6)
+* Python 2.6+ (not py3 compatible yet)
 
-* Django 1.2+ (tested in 1.3)
+* Django 1.4+
