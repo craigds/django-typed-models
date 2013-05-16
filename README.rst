@@ -67,6 +67,16 @@ An example says a bunch of words::
     >>> print Feline.objects.all()
     [<Feline: kitteh>, <Feline: cheetah>]
 
+You can actually change the types of objects. Simply run an update query::
+
+    Feline.objects.update(type='myapp.bigcat')
+
+If you want to change the type of an object without refreshing it from the database, you can call ``recast``::
+
+    kitty.recast(BigCat)
+    # or kitty.recast('myapp.bigcat')
+    kitty.save()
+
 
 Limitations
 ===========

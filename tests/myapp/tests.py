@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from myapp.models import AngryBigCat, Animal, BigCat, Canine, Feline
+from myapp.models import AngryBigCat, Animal, BigCat, Canine, Feline, AnotherTypedModel
 
 
 class SetupStuff(TestCase):
@@ -59,3 +59,27 @@ class TestTypedModels(SetupStuff):
         self.assertEqual(len(qs), 1)
         self.assertEqual([obj.type for obj in qs], ['myapp.angrybigcat'])
         self.assertEqual([type(obj) for obj in qs], [AngryBigCat])
+
+    def test_recast_auto(self):
+        cat = Feline.objects.get(name='kitteh')
+        cat.type = 'myapp.bigcat'
+        cat.recast()
+        self.assertEqual(cat.type, 'myapp.bigcat')
+        self.assertEqual(type(cat), BigCat)
+
+    def test_recast_string(self):
+        cat = Feline.objects.get(name='kitteh')
+        cat.recast('myapp.bigcat')
+        self.assertEqual(cat.type, 'myapp.bigcat')
+        self.assertEqual(type(cat), BigCat)
+
+    def test_recast_modelclass(self):
+        cat = Feline.objects.get(name='kitteh')
+        cat.recast(BigCat)
+        self.assertEqual(cat.type, 'myapp.bigcat')
+        self.assertEqual(type(cat), BigCat)
+
+    def test_recast_fail(self):
+        cat = Feline.objects.get(name='kitteh')
+        self.assertRaises(ValueError, cat.recast, AnotherTypedModel)
+        self.assertRaises(ValueError, cat.recast, 'myapp.anothertypedmodel')

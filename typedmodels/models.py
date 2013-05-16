@@ -155,7 +155,7 @@ class TypedModel(models.Model):
         super(TypedModel, self).__init__(*args, **kwargs)
         self.recast()
 
-    def recast(self):
+    def recast(self, typ=None):
         if not self.type:
             if not hasattr(self, '_typedmodels_type'):
                 # Ideally we'd raise an error here, but the django admin likes to call
@@ -170,10 +170,18 @@ class TypedModel(models.Model):
         else:
             raise ValueError("No suitable base class found to recast!")
 
+        if typ is None:
+            typ = self.type
+        else:
+            if isinstance(typ, type) and issubclass(typ, base):
+                typ = '%s.%s' % (typ._meta.app_label, typ._meta.module_name)
+
         try:
-            correct_cls = base._typedmodels_registry[self.type]
+            correct_cls = base._typedmodels_registry[typ]
         except KeyError:
-            raise ValueError("Invalid %s identifier : %r" % (base.__name__, self.type))
+            raise ValueError("Invalid %s identifier: %r" % (base.__name__, typ))
+
+        self.type = typ
 
         if self.__class__ != correct_cls:
             self.__class__ = correct_cls

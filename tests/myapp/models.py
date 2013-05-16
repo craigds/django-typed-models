@@ -40,3 +40,10 @@ class AngryBigCat(BigCat):
     """
     def say_something(self):
         return "raawr"
+
+
+class AnotherTypedModel(TypedModel):
+    """
+    This is an entirely different typed model.
+    """
+    foo = models.CharField(max_length=255)
