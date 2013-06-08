@@ -1,9 +1,13 @@
+# encoding: utf-8
+
 import types
 
+from django.core.serializers.python import Serializer
 from django.db import models
 from django.db.models.base import ModelBase
 from django.db.models.fields import Field
 from django.utils.datastructures import SortedDict
+from django.utils.encoding import smart_text
 
 class TypedModelManager(models.Manager):
     def get_query_set(self):
@@ -173,10 +177,6 @@ class TypedModelMetaclass(ModelBase):
             if hasattr(cls._meta, '_m2m_cache'):
                 del cls._meta._m2m_cache
             cls._meta._fill_m2m_cache()
-
-            # No, no, no. This is wrong as it duplicates fields in _meta.fields:
-            # # need to populate local_fields, otherwise no fields get serialized in fixtures
-            # cls._meta.local_fields = base_class._meta.local_fields[:]
         else:
             # this is the base class
             cls._typedmodels_registry = {}
@@ -305,3 +305,15 @@ class TypedModel(models.Model):
         if not getattr(self, '_typedmodels_type', None):
             raise RuntimeError("Untyped %s cannot be saved." % self.__class__.__name__)
         return super(TypedModel, self).save(*args, **kwargs)
+
+
+# Monkey patching Python serializer class in Django to use model name from base class.
+# This should be preferably done by changing __unicode__ method for ._meta attribute in each model,
+# but it doesn’t work.
+def get_dump_object(self, obj):
+    return {
+        "pk": smart_text(obj._get_pk_val(), strings_only=True),
+        "model": smart_text(getattr(obj, 'base_class', obj)._meta),
+        "fields": self._current
+    }
+Serializer.get_dump_object = get_dump_object

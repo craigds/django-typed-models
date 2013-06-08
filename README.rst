@@ -80,8 +80,9 @@ Since all objects are stored in the same table, all fields defined in subclasses
 Known issues
 ============
 
-* Error in South migration when m2m field related to model not inheriting directly from TypedModel is used
-* Problems with relative imports on some environments
+* Error in South migration when m2m field related to model not inheriting directly from TypedModel is used.
+* Problems with relative imports on some environments.
+* XML serialization doesn’t work.
 
 Requirements
 ============

@@ -1,3 +1,11 @@
+import unittest
+try:
+    import yaml
+    PYYAML_AVAILABLE = True
+except ImportError:
+    PYYAML_AVAILABLE = False
+
+from django.core import serializers
 from django.test import TestCase
 
 from .test_models import AngryBigCat, Animal, BigCat, Canine, Feline, Parrot
@@ -99,4 +107,23 @@ class TestTypedModels(SetupStuff):
 
         canine = Canine.objects.all()[0]
         self.assertTrue(hasattr(canine, 'angrybigcat_set'))
-        
+
+
+    def _check_serialization(self, serialization_format):
+        """Helper function used to check serialization and deserialization for concrete format."""
+
+        animals = Animal.objects.all()
+        serialized_animals = serializers.serialize(serialization_format, animals)
+        deserialized_animals = [wrapper.object for wrapper in serializers.deserialize(serialization_format, serialized_animals)]
+        self.assertItemsEqual(deserialized_animals, animals)
+
+    @unittest.expectedFailure
+    def test_xml_serialization(self):
+        self._check_serialization('xml')
+
+    def test_json_serialization(self):
+        self._check_serialization('json')
+
+    @unittest.skipUnless(PYYAML_AVAILABLE, 'PyYAML is not available.')
+    def test_yaml_serialization(self):
+        self._check_serialization('yaml')
