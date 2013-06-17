@@ -1,0 +1,14 @@
+language: python
+python:
+  - "2.7"
+env:
+  - DJANGO_BRANCH=master
+  - DJANGO_BRANCH=stable/1.5.x
+matrix:
+  allow_failures:
+    - env: DJANGO_BRANCH=master
+install:
+  - "pip install -e git+git://github.com/django/django.git@$DJANGO_BRANCH#egg=django"
+  - "pip install pyyaml"
+script:
+  ./runtests.py

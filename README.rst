@@ -2,6 +2,9 @@
 django-typed-models
 ===================
 
+.. image:: https://travis-ci.org/KrzysiekJ/django-typed-models.png?branch=master
+   :target: https://travis-ci.org/KrzysiekJ/django-typed-models
+
 Intro
 =====
 
@@ -89,4 +92,4 @@ Requirements
 
 * Python 2.5+ (tested in 2.7)
 
-* Django 1.2+ (tested in 1.4)
+* Django 1.5
