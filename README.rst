@@ -92,4 +92,4 @@ Requirements
 
 * Python 2.5+ (tested in 2.7)
 
-* Django 1.5
+* Django 1.5+

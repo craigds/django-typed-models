@@ -78,14 +78,21 @@ class TypedModelMetaclass(ModelBase):
                 if isinstance(field, models.fields.related.RelatedField):
                     # Monkey patching field instance to make do_related_class use created class instead of base_class.
                     # Actually that class doesn't exist yet, so we just monkey patch base_class for a while,
-                    # changing _meta.object_name, so accessor names are generated properly.
+                    # changing _meta.[object_name,module_name,model_name], so accessor names are generated properly.
                     # We'll do more stuff when the class is created.
                     old_do_related_class = field.do_related_class
                     def do_related_class(self, other, cls):
                         base_class_name = base_class.__name__
-                        cls._meta.object_name = classname
+                        # model_name was introduced in commit ec469ad in Django.
+                        if hasattr(cls._meta, 'model_name'):
+                            cls._meta.model_name = classname.lower()
+                        else:
+                            cls._meta.object_name = classname
                         old_do_related_class(other, cls)
-                        cls._meta.object_name = base_class_name
+                        if hasattr(cls._meta, 'model_name'):
+                            cls._meta.model_name = base_class_name.lower()
+                        else:
+                            cls._meta.object_name = base_class_name
                     field.do_related_class = types.MethodType(do_related_class, field, field.__class__)
                 if isinstance(field, models.fields.related.RelatedField) and isinstance(field.rel.to, TypedModel) and field.rel.to.base_class:
                     field.rel.limit_choices_to['type__in'] = field.rel.to._typedmodels_subtypes
@@ -111,7 +118,12 @@ class TypedModelMetaclass(ModelBase):
 
         if base_class:
             opts = cls._meta
-            typ = "%s.%s" % (opts.app_label, opts.object_name.lower())
+            # model_name was introduced in commit ec469ad in Django.
+            if hasattr(opts, 'model_name'):
+                model_name = opts.model_name
+            else:
+                model_name = opts.module_name
+            typ = "%s.%s" % (opts.app_label, model_name)
             cls._typedmodels_type = typ
             cls._typedmodels_subtypes = [typ]
             if typ in base_class._typedmodels_registry:
@@ -160,6 +172,9 @@ class TypedModelMetaclass(ModelBase):
             if hasattr(cls._meta, '_field_cache'):
                 del cls._meta._field_cache
             cls._meta._fill_fields_cache()
+            # Flush “fields” property cache created using cached_property, introduced in commit 9777442 in Django.
+            if 'fields' in cls._meta.__dict__:
+                del cls._meta.__dict__['fields']
 
             def _fill_m2m_cache(self):
                 cache = SortedDict()
