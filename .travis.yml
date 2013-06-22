@@ -6,7 +6,7 @@ env:
   - PIP_DJANGO='Django<=1.6'
   - PIP_DJANGO='https://github.com/django/django/archive/master.tar.gz'
 install:
-  - "pip install $PIP_DJANGO
+  - "pip install $PIP_DJANGO"
   - "pip install pyyaml"
 script:
   ./runtests.py
