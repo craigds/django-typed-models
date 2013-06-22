@@ -139,7 +139,7 @@ class TestTypedModels(SetupStuff):
         animals = Animal.objects.order_by('pk')
         serialized_animals = serializers.serialize(serialization_format, animals)
         deserialized_animals = [wrapper.object for wrapper in serializers.deserialize(serialization_format, serialized_animals)]
-        self.assertItemsEqual(deserialized_animals, animals)
+        self.assertItemsEqual(set(deserialized_animals), set(animals))
 
     @unittest.expectedFailure
     def test_xml_serialization(self):
