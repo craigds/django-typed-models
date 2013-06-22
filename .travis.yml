@@ -3,11 +3,11 @@ python:
   - "2.6"
   - "2.7"
 env:
-  - DJANGO_BRANCH=stable/1.4.x
-  - DJANGO_BRANCH=stable/1.5.x
-  - DJANGO_BRANCH=master
+  - PIP_DJANGO='Django<=1.5'
+  - PIP_DJANGO='Django<=1.6'
+  - PIP_DJANGO='https://github.com/django/django/archive/master.tar.gz'
 install:
-  - "pip install -e git+git://github.com/django/django.git@$DJANGO_BRANCH#egg=django"
+  - "pip install $PIP_DJANGO
   - "pip install pyyaml"
 script:
   ./runtests.py
