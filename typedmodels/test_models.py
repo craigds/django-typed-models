@@ -23,14 +23,13 @@ class Canine(Animal):
     def say_something(self):
         return "woof"
 
+
 class Feline(Animal):
     def say_something(self):
         return "meoww"
 
-    mice_eaten = models.IntegerField(
-        default = 0
-        )
-    
+    mice_eaten = models.IntegerField(default=0)
+
 
 class BigCat(Feline):
     """
@@ -52,9 +51,16 @@ class AngryBigCat(BigCat):
     def say_something(self):
         return "raawr"
 
+
 class Parrot(Animal):
     known_words = models.IntegerField()
 
     def say_something(self):
         return "hello"
 
+
+class AnotherTypedModel(TypedModel):
+    """
+    This is an entirely different typed model.
+    """
+    foo = models.CharField(max_length=255)

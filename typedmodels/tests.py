@@ -8,7 +8,7 @@ except ImportError:
 from django.core import serializers
 from django.test import TestCase
 
-from .test_models import AngryBigCat, Animal, BigCat, Canine, Feline, Parrot
+from .test_models import AngryBigCat, Animal, BigCat, Canine, Feline, Parrot, AnotherTypedModel
 
 
 class SetupStuff(TestCase):
@@ -19,6 +19,7 @@ class SetupStuff(TestCase):
         BigCat.objects.create(name="simba")
         AngryBigCat.objects.create(name="mufasa")
         Parrot.objects.create(name="Kajtek")
+
 
 class TestTypedModels(SetupStuff):
     def test_cant_instantiate_base_model(self):
@@ -68,6 +69,30 @@ class TestTypedModels(SetupStuff):
         self.assertEqual([obj.type for obj in qs], ['typedmodels.angrybigcat'])
         self.assertEqual([type(obj) for obj in qs], [AngryBigCat])
 
+    def test_recast_auto(self):
+        cat = Feline.objects.get(name='kitteh')
+        cat.type = 'myapp.bigcat'
+        cat.recast()
+        self.assertEqual(cat.type, 'myapp.bigcat')
+        self.assertEqual(type(cat), BigCat)
+
+    def test_recast_string(self):
+        cat = Feline.objects.get(name='kitteh')
+        cat.recast('myapp.bigcat')
+        self.assertEqual(cat.type, 'myapp.bigcat')
+        self.assertEqual(type(cat), BigCat)
+
+    def test_recast_modelclass(self):
+        cat = Feline.objects.get(name='kitteh')
+        cat.recast(BigCat)
+        self.assertEqual(cat.type, 'myapp.bigcat')
+        self.assertEqual(type(cat), BigCat)
+
+    def test_recast_fail(self):
+        cat = Feline.objects.get(name='kitteh')
+        self.assertRaises(ValueError, cat.recast, AnotherTypedModel)
+        self.assertRaises(ValueError, cat.recast, 'myapp.anothertypedmodel')
+
     def test_fields_in_subclasses(self):
         canine = Canine.objects.all()[0]
         angry = AngryBigCat.objects.all()[0]
@@ -75,7 +100,7 @@ class TestTypedModels(SetupStuff):
         angry.mice_eaten = 5
         angry.save()
         self.assertEqual(AngryBigCat.objects.get(pk=angry.pk).mice_eaten, 5)
-        
+
         angry.canines_eaten.add(canine)
         self.assertEqual(list(angry.canines_eaten.all()), [canine])
 
@@ -101,13 +126,12 @@ class TestTypedModels(SetupStuff):
         self.assertIn(canines_eaten, AngryBigCat._meta.many_to_many)
         self.assertNotIn(canines_eaten, Feline._meta.many_to_many)
         self.assertNotIn(canines_eaten, Parrot._meta.many_to_many)
-        
+
     def test_related_names(self):
         '''Ensure that accessor names for reverse relations are generated properly.'''
 
         canine = Canine.objects.all()[0]
         self.assertTrue(hasattr(canine, 'angrybigcat_set'))
-
 
     def _check_serialization(self, serialization_format):
         """Helper function used to check serialization and deserialization for concrete format."""
