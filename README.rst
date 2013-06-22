@@ -2,8 +2,8 @@
 django-typed-models
 ===================
 
-.. image:: https://travis-ci.org/KrzysiekJ/django-typed-models.png?branch=master
-   :target: https://travis-ci.org/KrzysiekJ/django-typed-models
+.. image:: https://travis-ci.org/craigds/django-typed-models.png?branch=master
+   :target: https://travis-ci.org/craigds/django-typed-models
 
 Intro
 =====
