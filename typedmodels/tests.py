@@ -71,27 +71,27 @@ class TestTypedModels(SetupStuff):
 
     def test_recast_auto(self):
         cat = Feline.objects.get(name='kitteh')
-        cat.type = 'myapp.bigcat'
+        cat.type = 'typedmodels.bigcat'
         cat.recast()
-        self.assertEqual(cat.type, 'myapp.bigcat')
+        self.assertEqual(cat.type, 'typedmodels.bigcat')
         self.assertEqual(type(cat), BigCat)
 
     def test_recast_string(self):
         cat = Feline.objects.get(name='kitteh')
-        cat.recast('myapp.bigcat')
-        self.assertEqual(cat.type, 'myapp.bigcat')
+        cat.recast('typedmodels.bigcat')
+        self.assertEqual(cat.type, 'typedmodels.bigcat')
         self.assertEqual(type(cat), BigCat)
 
     def test_recast_modelclass(self):
         cat = Feline.objects.get(name='kitteh')
         cat.recast(BigCat)
-        self.assertEqual(cat.type, 'myapp.bigcat')
+        self.assertEqual(cat.type, 'typedmodels.bigcat')
         self.assertEqual(type(cat), BigCat)
 
     def test_recast_fail(self):
         cat = Feline.objects.get(name='kitteh')
         self.assertRaises(ValueError, cat.recast, AnotherTypedModel)
-        self.assertRaises(ValueError, cat.recast, 'myapp.anothertypedmodel')
+        self.assertRaises(ValueError, cat.recast, 'typedmodels.anothertypedmodel')
 
     def test_fields_in_subclasses(self):
         canine = Canine.objects.all()[0]
