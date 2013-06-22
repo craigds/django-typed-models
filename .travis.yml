@@ -3,7 +3,6 @@ python:
   - "2.6"
   - "2.7"
 env:
-  - PIP_DJANGO='Django<=1.5'
   - PIP_DJANGO='Django<=1.6'
   - PIP_DJANGO='https://github.com/django/django/archive/master.tar.gz'
 install:

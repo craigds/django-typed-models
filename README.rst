@@ -102,4 +102,4 @@ Requirements
 
 * Python 2.6+ (not py3 compatible yet)
 
-* Django 1.4.2+
+* Django 1.5+
