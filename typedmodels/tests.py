@@ -1,4 +1,4 @@
-import unittest
+from django.utils import unittest
 try:
     import yaml
     PYYAML_AVAILABLE = True
