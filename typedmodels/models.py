@@ -58,7 +58,7 @@ class TypedModelMetaclass(ModelBase):
                 base_class._meta.original = Original
                 # Fill m2m cache for original class now, so it doesn't contain fields from child classes.
                 base_class._meta.original._meta.many_to_many
-            
+
             # Enforce that subclasses are proxy models.
             # Update an existing metaclass, or define an empty one
             # then set proxy=True
@@ -136,10 +136,11 @@ class TypedModelMetaclass(ModelBase):
             cls._meta.declared_fields = declared_fields
 
             # Update related fields in base_class so they refer to cls.
-            for field_name, related_field in filter(lambda (field_name, field): isinstance(field, models.fields.related.RelatedField), declared_fields.items()):
-                # Unfortunately RelatedObject is recreated in ./manage.py validate, so false positives for name clashes
-                # may be reported until #19399 is fixed - see https://code.djangoproject.com/ticket/19399
-                related_field.related.opts = cls._meta
+            for field_name, related_field in declared_fields.items():
+                if isinstance(related_field, models.fields.related.RelatedField):
+                    # Unfortunately RelatedObject is recreated in ./manage.py validate, so false positives for name clashes
+                    # may be reported until #19399 is fixed - see https://code.djangoproject.com/ticket/19399
+                    related_field.related.opts = cls._meta
 
             # look for any other proxy superclasses, they'll need to know
             # about this subclass
@@ -281,7 +282,7 @@ class TypedModel(models.Model):
         for field_value, field in zip(args, self._meta.fields):
             kwargs[field.attname] = field_value
             args.pop(0)
-            
+
         if self.base_class:
             before_class = self.__class__
             self.__class__ = self.base_class
