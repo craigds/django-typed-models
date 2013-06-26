@@ -42,24 +42,24 @@ An example says a bunch of words::
 
         def say_something(self):
             raise NotImplemented
-        
+
         def __repr__(self):
             return u'<%s: %s>' % (self.__class__.__name__, self.name)
-    
+
     class Canine(Animal):
         def say_something(self):
             return "woof"
-    
+
     class Feline(Animal):
         mice_eaten = models.IntegerField(
     	    default = 0
             )
-    
+
         def say_something(self):
             return "meoww"
 
 ::
-    
+
    # later
     >>> from myapp.models import Animal, Canine, Feline
     >>> Feline.objects.create(name="kitteh")
@@ -94,7 +94,7 @@ Known issues
 ============
 
 * Error in South migration when m2m field related to model not inheriting directly from TypedModel is used.
-* Problems with relative imports on some environments.
+* You should always use the same path when performing absolute imports of a module containing typed models. Otherwise Python may treat them as imports of distinct modules and execute the module many times, which will cause problems if you have database fields defined in subclasses.
 * XML serialization doesn’t work.
 
 Requirements
