@@ -8,5 +8,8 @@ env:
 install:
   - "pip install $PIP_DJANGO"
   - "pip install pyyaml"
+  - "pip install coveralls"
 script:
-  ./runtests.py
+  coverage run runtests.py
+after_success:
+  coveralls

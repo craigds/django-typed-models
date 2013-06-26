@@ -1,0 +1,7 @@
+# Note that to receive proper coverage results, you should be appending the results from different environments.
+
+[run]
+source=typedmodels
+
+[report]
+omit=*test*
