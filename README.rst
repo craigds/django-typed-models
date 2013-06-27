@@ -5,6 +5,9 @@ django-typed-models
 .. image:: https://travis-ci.org/craigds/django-typed-models.png?branch=master
    :target: https://travis-ci.org/craigds/django-typed-models
 
+.. image:: https://coveralls.io/repos/KrzysiekJ/django-typed-models/badge.png?branch=master
+   :target: https://coveralls.io/r/KrzysiekJ/django-typed-models?branch=master
+
 Intro
 =====
 
