@@ -1,14 +1,7 @@
 #!/usr/bin/env python
-import os
-import sys
 from distutils.core import setup
 
-# Dynamically calculate the version based on typedmodels.VERSION
-# .. but first set a settings module so this import doesnt throw a hissy
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tests.settings')
-sys.path.insert(0, os.path.dirname(__file__))
-version_tuple = __import__('typedmodels').VERSION
-version = ".".join([str(v) for v in version_tuple])
+version = '0.2.1'
 
 setup(
     name='django-typed-models',
