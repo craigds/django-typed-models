@@ -3,12 +3,16 @@ python:
   - "2.6"
   - "2.7"
 env:
-  - PIP_DJANGO='Django<=1.6'
+  - PIP_DJANGO='Django>=1.5,<1.6'
+  - PIP_DJANGO='Django>=1.6,<1.7'
   - PIP_DJANGO='https://github.com/django/django/archive/master.tar.gz'
 install:
   - "pip install $PIP_DJANGO"
-  - "pip install pyyaml"
-  - "pip install coveralls"
+  - "pip install pyyaml coveralls"
+matrix:
+  exclude:
+    - python: "2.6"
+      env: PIP_DJANGO='https://github.com/django/django/archive/master.tar.gz'
 script:
   coverage run runtests.py
 after_success:
