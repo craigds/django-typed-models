@@ -1,5 +1,6 @@
 # encoding: utf-8
 
+import django
 import types
 
 from django.core.serializers.python import Serializer
@@ -9,15 +10,25 @@ from django.db.models.fields import Field
 from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_text
 
+
 class TypedModelManager(models.Manager):
-    def get_query_set(self):
-        qs = super(TypedModelManager, self).get_query_set()
+    def get_queryset(self):
+        super_ = super(TypedModelManager, self)
+        if django.VERSION < (1, 7):
+            qs = super_.get_query_set()
+        else:
+            qs = super_.get_queryset()
         if hasattr(self.model, '_typedmodels_type'):
             if len(self.model._typedmodels_subtypes) > 1:
                 qs = qs.filter(type__in=self.model._typedmodels_subtypes)
             else:
                 qs = qs.filter(type=self.model._typedmodels_type)
         return qs
+    # rant: why oh why would you rename something so widely used?
+    if django.VERSION < (1, 7):
+        # in 1.7+, get_query_set gets defined by the base manager and complains if it's called.
+        # otherwise, we have to define it ourselves.
+        get_query_set = get_queryset
 
 
 class TypedModelMetaclass(ModelBase):
