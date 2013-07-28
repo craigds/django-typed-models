@@ -324,7 +324,11 @@ class TypedModel(models.Model):
             typ = self.type
         else:
             if isinstance(typ, type) and issubclass(typ, base):
-                typ = '%s.%s' % (typ._meta.app_label, typ._meta.module_name)
+                if django.VERSION < (1, 7):
+                    model_name = typ._meta.module_name
+                else:
+                    model_name = typ._meta.model_name
+                typ = '%s.%s' % (typ._meta.app_label, model_name)
 
         try:
             correct_cls = base._typedmodels_registry[typ]
