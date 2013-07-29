@@ -9,6 +9,8 @@ from django.db.models.fields import Field
 from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_text
 
+from .compat import with_metaclass
+
 class TypedModelManager(models.Manager):
     def get_query_set(self):
         qs = super(TypedModelManager, self).get_query_set()
@@ -25,6 +27,10 @@ class TypedModelMetaclass(ModelBase):
     This metaclass enables a model for auto-downcasting using a ``type`` attribute.
     """
     def __new__(meta, classname, bases, classdict):
+        # artifact created by with_metaclass, needed for py2/py3 compatibility
+        if classname == 'NewBase':
+            return super(TypedModelMetaclass, meta).__new__(
+                meta, classname, bases, classdict)
         try:
             TypedModel
         except NameError:
@@ -93,7 +99,7 @@ class TypedModelMetaclass(ModelBase):
                             cls._meta.model_name = base_class_name.lower()
                         else:
                             cls._meta.object_name = base_class_name
-                    field.do_related_class = types.MethodType(do_related_class, field, field.__class__)
+                    field.do_related_class = types.MethodType(do_related_class, field)
                 if isinstance(field, models.fields.related.RelatedField) and isinstance(field.rel.to, TypedModel) and field.rel.to.base_class:
                     field.rel.limit_choices_to['type__in'] = field.rel.to._typedmodels_subtypes
                     field.rel.to = field.rel.to.base_class
@@ -167,7 +173,7 @@ class TypedModelMetaclass(ModelBase):
                                 cache.append((field, parent))
                 self._field_cache = tuple(cache)
                 self._field_name_cache = [x for x, _ in cache]
-            cls._meta._fill_fields_cache = types.MethodType(_fill_fields_cache, cls._meta, cls._meta.__class__)
+            cls._meta._fill_fields_cache = types.MethodType(_fill_fields_cache, cls._meta)
             if hasattr(cls._meta, '_field_name_cache'):
                 del cls._meta._field_name_cache
             if hasattr(cls._meta, '_field_cache'):
@@ -189,7 +195,7 @@ class TypedModelMetaclass(ModelBase):
                 for field in self.local_many_to_many:
                     cache[field] = None
                 self._m2m_cache = cache
-            cls._meta._fill_m2m_cache = types.MethodType(_fill_m2m_cache, cls._meta, cls._meta.__class__)
+            cls._meta._fill_m2m_cache = types.MethodType(_fill_m2m_cache, cls._meta)
             if hasattr(cls._meta, '_m2m_cache'):
                 del cls._meta._m2m_cache
             cls._meta._fill_m2m_cache()
@@ -226,7 +232,7 @@ class TypedModelMetaclass(ModelBase):
         return cls
 
 
-class TypedModel(models.Model):
+class TypedModel(with_metaclass(TypedModelMetaclass, models.Model)):
     '''
     This class contains the functionality required to auto-downcast a model based
     on its ``type`` attribute.
@@ -260,8 +266,6 @@ class TypedModel(models.Model):
                 return "meoww"
     '''
 
-    __metaclass__ = TypedModelMetaclass
-
     type = models.CharField(choices=(), max_length=255, null=False, blank=False, db_index=True)
 
     # Class variable indicating if model should be automatically recasted after initialization
@@ -281,7 +285,7 @@ class TypedModel(models.Model):
             raise IndexError("Number of args exceeds number of fields")
         for field_value, field in zip(args, self._meta.fields):
             kwargs[field.attname] = field_value
-            args.pop(0)
+        args = []  # args were all converted to kwargs
 
         if self.base_class:
             before_class = self.__class__

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from distutils.core import setup
+from setuptools import find_packages
 
 version = '0.3.alpha'
 
@@ -19,6 +20,11 @@ setup(
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3 :: 3.3',
         'Topic :: Utilities'
     ],
 )

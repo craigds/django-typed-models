@@ -102,6 +102,6 @@ Known issues
 Requirements
 ============
 
-* Python 2.6+ (not py3 compatible yet)
+* Python 2.6, 2.7, 3.3
 
 * Django 1.5+
