@@ -9,6 +9,7 @@ env:
 install:
   - "pip install $PIP_DJANGO"
   - "pip install pyyaml coveralls"
+  - "pip install -e ."
 matrix:
   exclude:
     - python: "2.6"
