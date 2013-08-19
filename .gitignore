@@ -3,4 +3,6 @@ build
 *.pyo
 dist
 MANIFEST
+.coverage
+*.egg-info
 *~
