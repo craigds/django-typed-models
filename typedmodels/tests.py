@@ -35,6 +35,16 @@ class TestTypedModels(SetupStuff):
         except ValueError:
             pass
 
+    def test_get_types(self):
+        self.assertEqual(set(Animal.get_types()), set(['typedmodels.canine', 'typedmodels.bigcat', 'typedmodels.parrot', 'typedmodels.angrybigcat', 'typedmodels.feline']))
+        self.assertEqual(set(Canine.get_types()), set(['typedmodels.canine']))
+        self.assertEqual(set(Feline.get_types()), set(['typedmodels.bigcat', 'typedmodels.angrybigcat', 'typedmodels.feline']))
+
+    def test_get_type_classes(self):
+        self.assertEqual(set(Animal.get_type_classes()), set([Canine, BigCat, Parrot, AngryBigCat, Feline]))
+        self.assertEqual(set(Canine.get_type_classes()), set([Canine]))
+        self.assertEqual(set(Feline.get_type_classes()), set([BigCat, AngryBigCat, Feline]))
+
     def test_base_model_queryset(self):
         # all objects returned
         qs = Animal.objects.all().order_by('type')

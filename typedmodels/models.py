@@ -233,10 +233,18 @@ class TypedModelMetaclass(ModelBase):
 
             def get_type_classes(subcls):
                 if subcls is cls:
-                    return cls._typedmodels_registry.values()[:]
+                    return list(cls._typedmodels_registry.values())
                 else:
                     return [cls._typedmodels_registry[k] for k in subcls._typedmodels_subtypes]
             cls.get_type_classes = classmethod(get_type_classes)
+
+            def get_types(subcls):
+                if subcls is cls:
+                    return cls._typedmodels_registry.keys()
+                else:
+                    return subcls._typedmodels_subtypes[:]
+            cls.get_types = classmethod(get_types)
+
         return cls
 
 
