@@ -232,12 +232,10 @@ class TypedModelMetaclass(ModelBase):
             # add a get_type_classes classmethod to allow fetching of all the subclasses (useful for admin)
 
             def get_type_classes(subcls):
-                # This is a bit inconsistent since there is _typedmodels_subtypes
-                # attribute on subclasses. Perhaps it should be unified to achieve
-                # similar behavior on both root class and it's subclasses.
-                if subcls is not cls:
-                    raise ValueError("get_type_classes() is not accessible from subclasses of %s (was called from %s)" % (cls.__name__, subcls.__name__))
-                return cls._typedmodels_registry.values()[:]
+                if subcls is cls:
+                    return cls._typedmodels_registry.values()[:]
+                else:
+                    return [cls._typedmodels_registry[k] for k in subcls._typedmodels_subtypes]
             cls.get_type_classes = classmethod(get_type_classes)
         return cls
 
