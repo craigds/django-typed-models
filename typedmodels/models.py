@@ -142,7 +142,7 @@ class TypedModelMetaclass(ModelBase):
             # to proxies, so the sequences will always have the wrong value after fixture loading.
             # Turns out Django triggers sequence resets based on whether there's PK fields in
             # opts.local_fields (which is normally empty for proxies.) So we hack it!
-            opts.local_fields[:] = base_class.local_fields[:]
+            opts.local_fields[:] = base_class._meta.local_fields[:]
 
             # model_name was introduced in commit ec469ad in Django.
             if hasattr(opts, 'model_name'):
