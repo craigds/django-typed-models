@@ -135,6 +135,15 @@ class TypedModelMetaclass(ModelBase):
 
         if base_class:
             opts = cls._meta
+
+            # Dr Hacky "the hack" McHackerson, Sr.
+            # Django's deserialization code doesn't trigger sequence resets for proxy models.
+            # That's cool usually, but our deserialized models are alway going to be recasted
+            # to proxies, so the sequences will always have the wrong value after fixture loading.
+            # Turns out Django triggers sequence resets based on whether there's PK fields in
+            # opts.local_fields (which is normally empty for proxies.) So we hack it!
+            opts.local_fields[:] = base_class.local_fields[:]
+
             # model_name was introduced in commit ec469ad in Django.
             if hasattr(opts, 'model_name'):
                 model_name = opts.model_name
