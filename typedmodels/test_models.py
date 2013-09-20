@@ -63,8 +63,18 @@ class Parrot(Animal):
         return "hello"
 
 
-class AnotherTypedModel(TypedModel):
+class AbstractVegetable(TypedModel):
     """
     This is an entirely different typed model.
     """
-    foo = models.CharField(max_length=255)
+    name = models.CharField(max_length=255)
+    color = models.CharField(max_length=255)
+    yumness = models.FloatField(null=False)
+
+
+class Fruit(AbstractVegetable):
+    pass
+
+
+class Vegetable(AbstractVegetable):
+    pass

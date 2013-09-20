@@ -7,8 +7,9 @@ except ImportError:
 
 from django.core import serializers
 from django.test import TestCase
+from django.db.models.query_utils import DeferredAttribute
 
-from .test_models import AngryBigCat, Animal, BigCat, Canine, Feline, Parrot, AnotherTypedModel
+from .test_models import AngryBigCat, Animal, BigCat, Canine, Feline, Parrot, AbstractVegetable, Vegetable, Fruit
 
 
 class SetupStuff(TestCase):
@@ -100,8 +101,10 @@ class TestTypedModels(SetupStuff):
 
     def test_recast_fail(self):
         cat = Feline.objects.get(name='kitteh')
-        self.assertRaises(ValueError, cat.recast, AnotherTypedModel)
-        self.assertRaises(ValueError, cat.recast, 'typedmodels.anothertypedmodel')
+        self.assertRaises(ValueError, cat.recast, AbstractVegetable)
+        self.assertRaises(ValueError, cat.recast, 'typedmodels.abstractvegetable')
+        self.assertRaises(ValueError, cat.recast, Vegetable)
+        self.assertRaises(ValueError, cat.recast, 'typedmodels.vegetable')
 
     def test_fields_in_subclasses(self):
         canine = Canine.objects.all()[0]
@@ -142,6 +145,26 @@ class TestTypedModels(SetupStuff):
 
         canine = Canine.objects.all()[0]
         self.assertTrue(hasattr(canine, 'angrybigcat_set'))
+
+    def test_queryset_defer(self):
+        """
+        Ensure that qs.defer() works correctly
+        """
+        Vegetable.objects.create(name='cauliflower', color='white', yumness=1)
+        Vegetable.objects.create(name='spinach', color='green', yumness=5)
+        Vegetable.objects.create(name='sweetcorn', color='yellow', yumness=10)
+        Fruit.objects.create(name='Apple', color='red', yumness=7)
+
+        qs = AbstractVegetable.objects.defer('yumness')
+
+        objs = set(qs)
+        for o in objs:
+            print o
+            self.assertIsInstance(o, AbstractVegetable)
+            self.assertTrue(o._deferred)
+            self.assertIsInstance(o.__class__.__dict__['yumness'], DeferredAttribute)
+            # does a query, since this field was deferred
+            self.assertIsInstance(o.yumness, float)
 
     def _check_serialization(self, serialization_format):
         """Helper function used to check serialization and deserialization for concrete format."""

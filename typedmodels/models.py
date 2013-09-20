@@ -8,10 +8,12 @@ from django.core.serializers.xml_serializer import Serializer as _XmlSerializer
 from django.db import models
 from django.db.models.base import ModelBase
 from django.db.models.fields import Field
+from django.db.models.query_utils import DeferredAttribute, deferred_class_factory
 from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_text
 
 from .compat import with_metaclass
+
 
 class TypedModelManager(models.Manager):
     def get_queryset(self):
@@ -258,6 +260,15 @@ class TypedModelMetaclass(ModelBase):
         return cls
 
 
+def get_deferred_class_for_instance(instance, desired_class):
+    """
+    Returns a deferred class (as used by instances in a .defer() queryset).
+    """
+    original_cls = instance.__class__
+    attrs = [k for (k, v) in original_cls.__dict__.items() if isinstance(v, DeferredAttribute)]
+    return deferred_class_factory(desired_class, attrs)
+
+
 class TypedModel(with_metaclass(TypedModelMetaclass, models.Model)):
     '''
     This class contains the functionality required to auto-downcast a model based
@@ -356,7 +367,12 @@ class TypedModel(with_metaclass(TypedModelMetaclass, models.Model)):
 
         self.type = typ
 
-        if self.__class__ != correct_cls:
+        current_cls = self.__class__
+
+        if current_cls != correct_cls:
+            if self._deferred:
+                # create a new deferred class based on correct_cls instead of current_cls
+                correct_cls = get_deferred_class_for_instance(self, correct_cls)
             self.__class__ = correct_cls
 
     def save(self, *args, **kwargs):
