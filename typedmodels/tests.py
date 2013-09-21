@@ -159,7 +159,7 @@ class TestTypedModels(SetupStuff):
 
         objs = set(qs)
         for o in objs:
-            print o
+            print(o)
             self.assertIsInstance(o, AbstractVegetable)
             self.assertTrue(o._deferred)
             self.assertIsInstance(o.__class__.__dict__['yumness'], DeferredAttribute)
