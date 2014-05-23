@@ -12,7 +12,8 @@ from django.db.models.query_utils import DeferredAttribute, deferred_class_facto
 from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_text
 
-from .compat import with_metaclass
+from django.utils.six import with_metaclass
+
 
 
 class TypedModelManager(models.Manager):

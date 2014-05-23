@@ -3,7 +3,7 @@ from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
 from typedmodels import TypedModel
 
-from .compat import text_type
+from django.utils.six import text_type
 
 
 @python_2_unicode_compatible
