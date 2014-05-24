@@ -381,6 +381,15 @@ class TypedModel(with_metaclass(TypedModelMetaclass, models.Model)):
             raise RuntimeError("Untyped %s cannot be saved." % self.__class__.__name__)
         return super(TypedModel, self).save(*args, **kwargs)
 
+    @classmethod
+    def _check_field_name_clashes(cls):
+        if cls.base_class:
+            # Because we hack self._meta.local_fields, django's normal
+            # implementation of this method throws a bunch of errors.
+            # So we hack it to not throw those errors.
+            return []
+        return super(TypedModel, cls)._check_field_name_clashes()
+
 
 # Monkey patching Python and XML serializers in Django to use model name from base class.
 # This should be preferably done by changing __unicode__ method for ._meta attribute in each model,
