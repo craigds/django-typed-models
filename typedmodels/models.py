@@ -312,6 +312,13 @@ class TypedModel(with_metaclass(TypedModelMetaclass, models.Model)):
     class Meta:
         abstract = True
 
+    @classmethod
+    def _check_model(cls):
+        # Django doesn't like proxy models with fields,
+        # and issues an error check (E0017) here.
+        # But we need fields so we noop that check.
+        return []
+
     def __init__(self, *args, **kwargs):
         # Calling __init__ on base class because some functions (e.g. save()) need access to field values from base
         # class.
