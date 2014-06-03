@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 import django
+import sys
 import types
 
 from django.core.serializers.python import Serializer as _PythonSerializer
@@ -9,10 +10,15 @@ from django.db import models
 from django.db.models.base import ModelBase
 from django.db.models.fields import Field
 from django.db.models.query_utils import DeferredAttribute, deferred_class_factory
-from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_text
-
 from django.utils.six import with_metaclass
+
+if sys.version_info < (2, 7):
+    # OrderedDict is new in 2.7, but django < 1.7 provides this similar thing
+    from django.utils.datastructures import SortedDict as OrderedDict
+else:
+    from collections import OrderedDict
+
 
 
 
@@ -207,7 +213,7 @@ class TypedModelMetaclass(ModelBase):
                 del cls._meta.__dict__['fields']
 
             def _fill_m2m_cache(self):
-                cache = SortedDict()
+                cache = OrderedDict()
                 for parent in self.parents:
                     for field, model in parent._meta.get_m2m_with_model():
                         if field in base_class._meta.original._meta.many_to_many or any(field in ancestor._meta.declared_fields.values() for ancestor in cls.mro() if issubclass(ancestor, base_class) and not ancestor==base_class):
