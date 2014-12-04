@@ -145,14 +145,6 @@ class TypedModelMetaclass(ModelBase):
         if base_class:
             opts = cls._meta
 
-            # Dr Hacky "the hack" McHackerson, Sr.
-            # Django's deserialization code doesn't trigger sequence resets for proxy models.
-            # That's cool usually, but our deserialized models are always going to be recasted
-            # to proxies, so the sequences will always have the wrong value after fixture loading.
-            # Turns out Django triggers sequence resets based on whether there's PK fields in
-            # opts.local_fields (which is normally empty for proxies.) So we hack it!
-            opts.local_fields[:] = base_class._meta.local_fields[:]
-
             # model_name was introduced in commit ec469ad in Django.
             if hasattr(opts, 'model_name'):
                 model_name = opts.model_name
@@ -318,13 +310,6 @@ class TypedModel(with_metaclass(TypedModelMetaclass, models.Model)):
     class Meta:
         abstract = True
 
-    @classmethod
-    def _check_model(cls):
-        # Django doesn't like proxy models with fields,
-        # and issues an error check (E0017) here.
-        # But we need fields so we noop that check.
-        return []
-
     def __init__(self, *args, **kwargs):
         # Calling __init__ on base class because some functions (e.g. save()) need access to field values from base
         # class.
@@ -393,15 +378,6 @@ class TypedModel(with_metaclass(TypedModelMetaclass, models.Model)):
         if not getattr(self, '_typedmodels_type', None):
             raise RuntimeError("Untyped %s cannot be saved." % self.__class__.__name__)
         return super(TypedModel, self).save(*args, **kwargs)
-
-    @classmethod
-    def _check_field_name_clashes(cls):
-        if cls.base_class:
-            # Because we hack self._meta.local_fields, django's normal
-            # implementation of this method throws a bunch of errors.
-            # So we hack it to not throw those errors.
-            return []
-        return super(TypedModel, cls)._check_field_name_clashes()
 
 
 # Monkey patching Python and XML serializers in Django to use model name from base class.

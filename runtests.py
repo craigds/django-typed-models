@@ -2,6 +2,7 @@
 from django.conf import settings
 settings.configure(
     INSTALLED_APPS=('typedmodels',),
+    MIDDLEWARE_CLASSES=(),
     DATABASES={
         'default': {'ENGINE': 'django.db.backends.sqlite3'}
     })
