@@ -14,7 +14,7 @@ class Animal(TypedModel):
     name = models.CharField(max_length=255)
 
     def say_something(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     # def __repr__(self):
     #     return u'<%s: %s>' % (self.__class__.__name__, self.name)

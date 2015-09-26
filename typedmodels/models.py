@@ -1,7 +1,6 @@
 # encoding: utf-8
 
 import django
-import sys
 import types
 
 from django.core.serializers.python import Serializer as _PythonSerializer
@@ -13,33 +12,18 @@ from django.db.models.query_utils import DeferredAttribute, deferred_class_facto
 from django.utils.encoding import smart_text
 from django.utils.six import with_metaclass
 
-if sys.version_info < (2, 7):
-    # OrderedDict is new in 2.7, but django < 1.7 provides this similar thing
-    from django.utils.datastructures import SortedDict as OrderedDict
-else:
-    from collections import OrderedDict
-
-
+from collections import OrderedDict
 
 
 class TypedModelManager(models.Manager):
     def get_queryset(self):
-        super_ = super(TypedModelManager, self)
-        if django.VERSION < (1, 7):
-            qs = super_.get_query_set()
-        else:
-            qs = super_.get_queryset()
+        qs = super(TypedModelManager, self).get_queryset()
         if hasattr(self.model, '_typedmodels_type'):
             if len(self.model._typedmodels_subtypes) > 1:
                 qs = qs.filter(type__in=self.model._typedmodels_subtypes)
             else:
                 qs = qs.filter(type=self.model._typedmodels_type)
         return qs
-    # rant: why oh why would you rename something so widely used?
-    if django.VERSION < (1, 7):
-        # in 1.7+, get_query_set gets defined by the base manager and complains if it's called.
-        # otherwise, we have to define it ourselves.
-        get_query_set = get_queryset
 
 
 class TypedModelMetaclass(ModelBase):
@@ -104,21 +88,14 @@ class TypedModelMetaclass(ModelBase):
                 if isinstance(field, models.fields.related.RelatedField):
                     # Monkey patching field instance to make do_related_class use created class instead of base_class.
                     # Actually that class doesn't exist yet, so we just monkey patch base_class for a while,
-                    # changing _meta.[object_name,module_name,model_name], so accessor names are generated properly.
+                    # changing _meta.model_name, so accessor names are generated properly.
                     # We'll do more stuff when the class is created.
                     old_do_related_class = field.do_related_class
                     def do_related_class(self, other, cls):
                         base_class_name = base_class.__name__
-                        # model_name was introduced in commit ec469ad in Django.
-                        if hasattr(cls._meta, 'model_name'):
-                            cls._meta.model_name = classname.lower()
-                        else:
-                            cls._meta.object_name = classname
+                        cls._meta.model_name = classname.lower()
                         old_do_related_class(other, cls)
-                        if hasattr(cls._meta, 'model_name'):
-                            cls._meta.model_name = base_class_name.lower()
-                        else:
-                            cls._meta.object_name = base_class_name
+                        cls._meta.model_name = base_class_name.lower()
                     field.do_related_class = types.MethodType(do_related_class, field)
                 if isinstance(field, models.fields.related.RelatedField) and isinstance(field.rel.to, TypedModel) and field.rel.to.base_class:
                     field.rel.limit_choices_to['type__in'] = field.rel.to._typedmodels_subtypes
@@ -145,11 +122,7 @@ class TypedModelMetaclass(ModelBase):
         if base_class:
             opts = cls._meta
 
-            # model_name was introduced in commit ec469ad in Django.
-            if hasattr(opts, 'model_name'):
-                model_name = opts.model_name
-            else:
-                model_name = opts.module_name
+            model_name = opts.model_name
             typ = "%s.%s" % (opts.app_label, model_name)
             cls._typedmodels_type = typ
             cls._typedmodels_subtypes = [typ]
