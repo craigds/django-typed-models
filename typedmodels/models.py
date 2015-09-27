@@ -2,6 +2,7 @@
 
 import django
 import types
+from functools import partial
 
 from django.core.serializers.python import Serializer as _PythonSerializer
 from django.core.serializers.xml_serializer import Serializer as _XmlSerializer
@@ -11,6 +12,10 @@ from django.db.models.fields import Field
 from django.db.models.query_utils import DeferredAttribute, deferred_class_factory
 from django.utils.encoding import smart_text
 from django.utils.six import with_metaclass
+
+make_immutable_fields_list = None
+if django.VERSION >= (1, 8):
+    from django.db.models.options import make_immutable_fields_list
 
 from collections import OrderedDict
 
@@ -144,13 +149,9 @@ class TypedModelMetaclass(ModelBase):
 
             # Django 1.8 substantially changed the _meta API for this stuff.
             if django.VERSION < (1, 8):
-                meta._django_17_fill_fields_cache(cls, base_class)
+                meta._django_17_patch_fields_cache(cls, base_class)
             else:
-                raise NotImplementedError("TODO django 1.8 support")
-
-            # Flush “fields” property cache (ie the thing that @cached_property sets).
-            if 'fields' in cls._meta.__dict__:
-                del cls._meta.__dict__['fields']
+                meta._patch_fields_cache(cls, base_class)
         else:
             # this is the base class
             cls._typedmodels_registry = {}
@@ -190,30 +191,69 @@ class TypedModelMetaclass(ModelBase):
 
         return cls
 
-    @classmethod
-    def _django_17_fill_fields_cache(meta, cls, base_class):
+    @staticmethod
+    def _model_has_field(cls, base_class, f, m2m=None):
+        if m2m in (True, None) and f in base_class._meta._typedmodels_original_many_to_many:
+            return True
+        if m2m in (False, None) and f in base_class._meta._typedmodels_original_fields:
+            return True
+        for ancestor in cls.mro():
+            if issubclass(ancestor, base_class) and ancestor != base_class:
+                if f in ancestor._meta.declared_fields.values():
+                    return True
+
+        if django.VERSION >= (1, 8):
+            # In django 1.8+ reverse m2m fields are in fields_map instead of
+            # _typedmodels_original_many_to_many, so will need some special handling here.
+            if m2m in (True, None) and f.name in cls._meta.fields_map:
+                # Crazy case where a reverse M2M from another typedmodels proxy points to this proxy
+                # (this is an m2m reverse field)
+                return True
+        return False
+
+    @staticmethod
+    def _patch_fields_cache(cls, base_class):
+        orig_get_fields = cls._meta._get_fields
+
+        def _get_fields(self, forward=True, reverse=True, include_parents=True, include_hidden=False,
+                        seen_models=None):
+            cache_key = (forward, reverse, include_parents, include_hidden, seen_models is None)
+
+            was_cached = cache_key in self._get_fields_cache
+
+            fields = orig_get_fields(
+                forward=forward,
+                reverse=reverse,
+                include_parents=include_parents,
+                include_hidden=include_hidden,
+                seen_models=seen_models
+            )
+
+            # If it was cached already, it's because we've already filtered this, skip it
+            if not was_cached:
+                fields = [f for f in fields if TypedModelMetaclass._model_has_field(cls, base_class, f)]
+                fields = make_immutable_fields_list("get_fields()", fields)
+                self._get_fields_cache[cache_key] = fields
+            return fields
+
+        cls._meta._get_fields = partial(_get_fields, cls._meta)
+
+        # If fields are already cached, expire the cache.
+        cls._meta._expire_cache()
+
+    @staticmethod
+    def _django_17_patch_fields_cache(cls, base_class):
         # Overriding _fill_fields_cache and _fill_m2m_cache functions in Meta.
         # This is done by overriding method for specific instance of
         # django.db.models.options.Options class, which generally should
         # be avoided, but in this case it may be better than monkey patching
         # Options or copy-pasting large parts of Django code.
 
-        def _model_has_field(f, m2m):
-            if m2m and f in base_class._meta._typedmodels_original_many_to_many:
-                return True
-            elif (not m2m) and f in base_class._meta._typedmodels_original_fields:
-                return True
-            for ancestor in cls.mro():
-                if issubclass(ancestor, base_class) and ancestor != base_class:
-                    if f in ancestor._meta.declared_fields.values():
-                        return True
-            return False
-
         def _fill_fields_cache(self):
             cache = []
             for parent in self.parents:
                 for field, model in parent._meta.get_fields_with_model():
-                    if _model_has_field(field, m2m=False):
+                    if TypedModelMetaclass._model_has_field(cls, base_class, field, m2m=False):
                         if model:
                             cache.append((field, model))
                         else:
@@ -231,7 +271,7 @@ class TypedModelMetaclass(ModelBase):
             cache = OrderedDict()
             for parent in self.parents:
                 for field, model in parent._meta.get_m2m_with_model():
-                    if _model_has_field(field, m2m=True):
+                    if TypedModelMetaclass._model_has_field(cls, base_class, field, m2m=True):
                         if model:
                             cache[field] = model
                         else:
@@ -243,6 +283,10 @@ class TypedModelMetaclass(ModelBase):
         if hasattr(cls._meta, '_m2m_cache'):
             del cls._meta._m2m_cache
         cls._meta._fill_m2m_cache()
+
+        # Flush “fields” property cache (ie the thing that @cached_property sets).
+        if 'fields' in cls._meta.__dict__:
+            del cls._meta.__dict__['fields']
 
 
 def get_deferred_class_for_instance(instance, desired_class):
