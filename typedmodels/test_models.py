@@ -1,7 +1,7 @@
 
 from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
-from typedmodels import TypedModel
+from typedmodels.models import TypedModel
 
 from django.utils.six import text_type
 
