@@ -61,14 +61,6 @@ class TypedModelMetaclass(ModelBase):
             base_class = None
 
         if base_class:
-            if not hasattr(base_class._meta, 'original'):
-                class original_meta:
-                    proxy = True
-                Original = super(TypedModelMetaclass, meta).__new__(meta, base_class.__name__+'Original', (base_class,), {'Meta': original_meta, '__module__': base_class.__module__})
-                base_class._meta.original = Original
-                # Fill m2m cache for original class now, so it doesn't contain fields from child classes.
-                base_class._meta.original._meta.many_to_many
-
             # Enforce that subclasses are proxy models.
             # Update an existing metaclass, or define an empty one
             # then set proxy=True
@@ -150,55 +142,22 @@ class TypedModelMetaclass(ModelBase):
                         and hasattr(superclass, '_typedmodels_type')):
                     superclass._typedmodels_subtypes.append(typ)
 
-            # Overriding _fill_fields_cache and _fill_m2m_cache functions in Meta.
-            # This is done by overriding method for specific instance of
-            # django.db.models.options.Options class, which generally should
-            # be avoided, but in this case it may be better than monkey patching
-            # Options or copy-pasting large parts of Django code.
+            # Django 1.8 substantially changed the _meta API for this stuff.
+            if django.VERSION < (1, 8):
+                meta._django_17_fill_fields_cache(cls, base_class)
+            else:
+                raise NotImplementedError("TODO django 1.8 support")
 
-            def _fill_fields_cache(self):
-                cache = []
-                for parent in self.parents:
-                    for field, model in parent._meta.get_fields_with_model():
-                        if field in base_class._meta.original._meta.fields or any(field in ancestor._meta.declared_fields.values() for ancestor in cls.mro() if issubclass(ancestor, base_class) and not ancestor==base_class):
-                            if model:
-                                cache.append((field, model))
-                            else:
-                                cache.append((field, parent))
-                self._field_cache = tuple(cache)
-                self._field_name_cache = [x for x, _ in cache]
-            cls._meta._fill_fields_cache = types.MethodType(_fill_fields_cache, cls._meta)
-            if hasattr(cls._meta, '_field_name_cache'):
-                del cls._meta._field_name_cache
-            if hasattr(cls._meta, '_field_cache'):
-                del cls._meta._field_cache
-            cls._meta._fill_fields_cache()
-            # Flush “fields” property cache created using cached_property, introduced in commit 9777442 in Django.
+            # Flush “fields” property cache (ie the thing that @cached_property sets).
             if 'fields' in cls._meta.__dict__:
                 del cls._meta.__dict__['fields']
-
-            def _fill_m2m_cache(self):
-                cache = OrderedDict()
-                for parent in self.parents:
-                    for field, model in parent._meta.get_m2m_with_model():
-                        if field in base_class._meta.original._meta.many_to_many or any(field in ancestor._meta.declared_fields.values() for ancestor in cls.mro() if issubclass(ancestor, base_class) and not ancestor==base_class):
-                            if model:
-                                cache[field] = model
-                            else:
-                                cache[field] = parent
-                for field in self.local_many_to_many:
-                    cache[field] = None
-                self._m2m_cache = cache
-            cls._meta._fill_m2m_cache = types.MethodType(_fill_m2m_cache, cls._meta)
-            if hasattr(cls._meta, '_m2m_cache'):
-                del cls._meta._m2m_cache
-            cls._meta._fill_m2m_cache()
         else:
             # this is the base class
             cls._typedmodels_registry = {}
 
             # Since fields may be added by subclasses, save original fields.
-            cls._meta.original_fields = cls._meta.fields
+            cls._meta._typedmodels_original_fields = cls._meta.fields
+            cls._meta._typedmodels_original_many_to_many = cls._meta.many_to_many
 
             # set default manager. this will be inherited by subclasses, since they are proxy models
             manager = None
@@ -230,6 +189,60 @@ class TypedModelMetaclass(ModelBase):
             cls.get_types = classmethod(get_types)
 
         return cls
+
+    @classmethod
+    def _django_17_fill_fields_cache(meta, cls, base_class):
+        # Overriding _fill_fields_cache and _fill_m2m_cache functions in Meta.
+        # This is done by overriding method for specific instance of
+        # django.db.models.options.Options class, which generally should
+        # be avoided, but in this case it may be better than monkey patching
+        # Options or copy-pasting large parts of Django code.
+
+        def _model_has_field(f, m2m):
+            if m2m and f in base_class._meta._typedmodels_original_many_to_many:
+                return True
+            elif (not m2m) and f in base_class._meta._typedmodels_original_fields:
+                return True
+            for ancestor in cls.mro():
+                if issubclass(ancestor, base_class) and ancestor != base_class:
+                    if f in ancestor._meta.declared_fields.values():
+                        return True
+            return False
+
+        def _fill_fields_cache(self):
+            cache = []
+            for parent in self.parents:
+                for field, model in parent._meta.get_fields_with_model():
+                    if _model_has_field(field, m2m=False):
+                        if model:
+                            cache.append((field, model))
+                        else:
+                            cache.append((field, parent))
+            self._field_cache = tuple(cache)
+            self._field_name_cache = [x for x, _ in cache]
+        cls._meta._fill_fields_cache = types.MethodType(_fill_fields_cache, cls._meta)
+        if hasattr(cls._meta, '_field_name_cache'):
+            del cls._meta._field_name_cache
+        if hasattr(cls._meta, '_field_cache'):
+            del cls._meta._field_cache
+        cls._meta._fill_fields_cache()
+
+        def _fill_m2m_cache(self):
+            cache = OrderedDict()
+            for parent in self.parents:
+                for field, model in parent._meta.get_m2m_with_model():
+                    if _model_has_field(field, m2m=True):
+                        if model:
+                            cache[field] = model
+                        else:
+                            cache[field] = parent
+            for field in self.local_many_to_many:
+                cache[field] = None
+            self._m2m_cache = cache
+        cls._meta._fill_m2m_cache = types.MethodType(_fill_m2m_cache, cls._meta)
+        if hasattr(cls._meta, '_m2m_cache'):
+            del cls._meta._m2m_cache
+        cls._meta._fill_m2m_cache()
 
 
 def get_deferred_class_for_instance(instance, desired_class):
