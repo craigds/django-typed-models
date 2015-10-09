@@ -35,7 +35,7 @@ An example says a bunch of words::
     # myapp/models.py
 
     from django.db import models
-    from typedmodels import TypedModel
+    from typedmodels.models import TypedModel
 
     class Animal(TypedModel):
         """

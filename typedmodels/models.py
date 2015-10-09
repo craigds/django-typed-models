@@ -310,7 +310,7 @@ class TypedModel(with_metaclass(TypedModelMetaclass, models.Model)):
     Example usage::
 
         from django.db import models
-        from typedmodels import TypedModel
+        from typedmodels.models import TypedModel
 
         class Animal(TypedModel):
             """
