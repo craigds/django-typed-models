@@ -16,4 +16,4 @@ setup_test_environment()
 
 
 from django.core.management import call_command
-call_command('test', 'typedmodels')
+call_command('test', 'typedmodels', verbosity=2)
