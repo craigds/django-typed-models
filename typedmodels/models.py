@@ -132,12 +132,13 @@ class TypedModelMetaclass(ModelBase):
 
             cls._meta.declared_fields = declared_fields
 
-            # Update related fields in base_class so they refer to cls.
-            for field_name, related_field in declared_fields.items():
-                if isinstance(related_field, models.fields.related.RelatedField):
-                    # Unfortunately RelatedObject is recreated in ./manage.py validate, so false positives for name clashes
-                    # may be reported until #19399 is fixed - see https://code.djangoproject.com/ticket/19399
-                    related_field.related.opts = cls._meta
+            if django.VERSION < (1, 9):
+                # Update related fields in base_class so they refer to cls.
+                for field_name, related_field in declared_fields.items():
+                    if isinstance(related_field, models.fields.related.RelatedField):
+                        # Unfortunately RelatedObject is recreated in ./manage.py validate, so false positives for name clashes
+                        # may be reported until #19399 is fixed - see https://code.djangoproject.com/ticket/19399
+                        related_field.related.opts = cls._meta
 
             # look for any other proxy superclasses, they'll need to know
             # about this subclass
