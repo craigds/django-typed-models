@@ -135,7 +135,7 @@ class TestTypedModels(SetupStuff):
         self.assertNotIn(known_words, Feline._meta.fields)
 
     def test_m2m_cache(self):
-        canines_eaten = AngryBigCat._meta.get_field_by_name('canines_eaten')[0]
+        canines_eaten = AngryBigCat._meta.get_field('canines_eaten')
         self.assertIn(canines_eaten, AngryBigCat._meta.many_to_many)
         self.assertNotIn(canines_eaten, Feline._meta.many_to_many)
         self.assertNotIn(canines_eaten, Parrot._meta.many_to_many)
