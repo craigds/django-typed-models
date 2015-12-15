@@ -84,7 +84,7 @@ class TypedModelMetaclass(ModelBase):
                 # In Django 1.8+, warnings will be triggered by the system
                 # check for M2M fields setting if we set null to True. Prevent
                 # those warnings by setting null only for non-M2M fields.
-                if not field.many_to_many:
+                if django.VERSION < (1, 8) or not field.many_to_many:
                     field.null = True
                 if isinstance(field, models.fields.related.RelatedField):
                     # Monkey patching field instance to make do_related_class use created class instead of base_class.
