@@ -91,7 +91,7 @@ If you want to change the type of an object without refreshing it from the datab
 Limitations
 ===========
 
-Since all objects are stored in the same table, all fields defined in subclasses are nullable.
+Since all objects are stored in the same table, all fields defined in subclasses are nullable with the exception of ManyToManyFields. Django's system check warns that setting ``null=True`` on ManyToManyFields has no effect so the ``null`` attribute ManyToManyFields is left as is while all other field types have ``null`` set to ``False``.
 
 Known issues
 ============
