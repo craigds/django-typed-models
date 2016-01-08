@@ -81,7 +81,11 @@ class TypedModelMetaclass(ModelBase):
             declared_fields = dict((name, element) for name, element in classdict.items() if isinstance(element, Field))
 
             for field_name, field in declared_fields.items():
-                field.null = True
+                # In Django 1.8+, warnings will be triggered by the system
+                # check for M2M fields setting if we set null to True. Prevent
+                # those warnings by setting null only for non-M2M fields.
+                if django.VERSION < (1, 8) or not field.many_to_many:
+                    field.null = True
                 if isinstance(field, models.fields.related.RelatedField):
                     # Monkey patching field instance to make do_related_class use created class instead of base_class.
                     # Actually that class doesn't exist yet, so we just monkey patch base_class for a while,
