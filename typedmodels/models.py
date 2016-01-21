@@ -130,9 +130,12 @@ class TypedModelMetaclass(ModelBase):
             if typ in base_class._typedmodels_registry:
                 raise ValueError("Can't register %s type %r to %r (already registered to %r )" % (typ, classname, base_class._typedmodels_registry))
             base_class._typedmodels_registry[typ] = cls
+
             type_name = getattr(cls._meta, 'verbose_name', cls.__name__)
             type_field = base_class._meta.get_field('type')
-            type_field._choices = tuple(list(type_field.choices) + [(typ, type_name)])
+            choices = tuple(list(type_field.choices) + [(typ, type_name)])
+            choices_field = '_choices' if django.VERSION < (1, 9) else 'choices'
+            setattr(type_field, choices_field, choices)
 
             cls._meta.declared_fields = declared_fields
 
