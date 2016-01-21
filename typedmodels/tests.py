@@ -46,6 +46,10 @@ class TestTypedModels(SetupStuff):
         self.assertEqual(set(Canine.get_type_classes()), set([Canine]))
         self.assertEqual(set(Feline.get_type_classes()), set([BigCat, AngryBigCat, Feline]))
 
+    def test_type_choices(self):
+        type_choices = set((cls for cls, _  in Animal._meta.get_field('type').choices))
+        self.assertEqual(type_choices, set(Animal.get_types()))
+
     def test_base_model_queryset(self):
         # all objects returned
         qs = Animal.objects.all().order_by('type')
