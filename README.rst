@@ -9,7 +9,7 @@ django-typed-models
    :target: https://coveralls.io/r/craigds/django-typed-models?branch=master
 
 .. image:: https://api.flattr.com/button/flattr-badge-large.png
-    :target: https://flattr.com/submit/auto?user_id=craigds&url=https://github.com/django-typed-models/django-typed-models/&title=django-typed-models&language=en_GB&tags=django,python,github&category=software
+    :target: https://flattr.com/submit/auto?user_id=craigds&url=https://github.com/craigds/django-typed-models/&title=django-typed-models&language=en_GB&tags=django,python,github&category=software
 
 Intro
 =====
@@ -114,4 +114,4 @@ Help!
 If you've used this project and want to help me spend more time on open source, flattr me! 
 
 .. image:: https://api.flattr.com/button/flattr-badge-large.png
-    :target: https://flattr.com/submit/auto?user_id=craigds&url=https://github.com/django-typed-models/django-typed-models/&title=django-typed-models&language=en_GB&tags=django,python,github&category=software
+    :target: https://flattr.com/submit/auto?user_id=craigds&url=https://github.com/craigds/django-typed-models/&title=django-typed-models&language=en_GB&tags=django,python,github&category=software
