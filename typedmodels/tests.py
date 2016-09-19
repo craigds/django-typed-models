@@ -1,6 +1,10 @@
 import unittest
+
+from django.contrib.contenttypes.models import ContentType
+
 try:
     import yaml
+
     PYYAML_AVAILABLE = True
 except ImportError:
     PYYAML_AVAILABLE = False
@@ -9,17 +13,30 @@ from django.core import serializers
 from django.test import TestCase
 from django.db.models.query_utils import DeferredAttribute
 
-from .test_models import AngryBigCat, Animal, BigCat, Canine, Feline, Parrot, AbstractVegetable, Vegetable, Fruit
+from .test_models import AngryBigCat, Animal, BigCat, Canine, Feline, Parrot, AbstractVegetable, Vegetable, \
+    Fruit, UniqueIdentifier
 
 
 class SetupStuff(TestCase):
     def setUp(self):
-        Feline.objects.create(name="kitteh")
-        Feline.objects.create(name="cheetah")
-        Canine.objects.create(name="fido")
-        BigCat.objects.create(name="simba")
-        AngryBigCat.objects.create(name="mufasa")
-        Parrot.objects.create(name="Kajtek")
+        kitteh = Feline.objects.create(name="kitteh")
+        kitteh_id = UniqueIdentifier.objects.create(name='kitteh', object_id=kitteh.pk,
+                                        content_type=ContentType.objects.get_for_model(kitteh))
+        cheetah = Feline.objects.create(name="cheetah")
+        cheetah_id = UniqueIdentifier.objects.create(name='cheetah', object_id=cheetah.pk,
+                                         content_type=ContentType.objects.get_for_model(cheetah))
+        fido = Canine.objects.create(name="fido")
+        fido_id = UniqueIdentifier.objects.create(name='fido', object_id=fido.pk,
+                                      content_type=ContentType.objects.get_for_model(fido))
+        simba = BigCat.objects.create(name="simba")
+        simba_id = UniqueIdentifier.objects.create(name='simba', object_id=simba.pk,
+                                       content_type=ContentType.objects.get_for_model(simba))
+        mufasa = AngryBigCat.objects.create(name="mufasa")
+        mufasa_id = UniqueIdentifier.objects.create(name='mufasa', object_id=mufasa.pk,
+                                        content_type=ContentType.objects.get_for_model(mufasa))
+        kajtek = Parrot.objects.create(name="Kajtek")
+        kajetek_id = UniqueIdentifier.objects.create(name='kajtek', object_id=kajtek.pk,
+                                         content_type=ContentType.objects.get_for_model(kajtek))
 
 
 class TestTypedModels(SetupStuff):
@@ -185,3 +202,18 @@ class TestTypedModels(SetupStuff):
     @unittest.skipUnless(PYYAML_AVAILABLE, 'PyYAML is not available.')
     def test_yaml_serialization(self):
         self._check_serialization('yaml')
+
+    def test_generic_relation(self):
+        for animal in Animal.objects.all():
+            self.assertTrue(hasattr(animal, 'unique_identifiers'))
+            self.assertTrue(animal.unique_identifiers.all())
+
+        for uid in UniqueIdentifier.objects.all():
+            cls = uid.referent.__class__
+            animal = cls.objects.filter(unique_identifiers=uid)
+            self.assertTrue(isinstance(animal.first(), Animal))
+
+        for uid in UniqueIdentifier.objects.all():
+            cls = uid.referent.__class__
+            animal = cls.objects.filter(unique_identifiers__name=uid.name)
+            self.assertTrue(isinstance(animal.first(), Animal))

@@ -3,7 +3,7 @@ import django
 from django.conf import settings
 
 settings.configure(
-    INSTALLED_APPS=('typedmodels',),
+    INSTALLED_APPS=('typedmodels', 'django.contrib.contenttypes', ),
     MIDDLEWARE_CLASSES=(),
     DATABASES={
         'default': {'ENGINE': 'django.db.backends.sqlite3'}

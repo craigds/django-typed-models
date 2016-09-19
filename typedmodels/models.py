@@ -206,6 +206,8 @@ class TypedModelMetaclass(ModelBase):
             return True
         if m2m in (False, None) and f in base_class._meta._typedmodels_original_fields:
             return True
+        if f in base_class._meta.virtual_fields:
+            return True
         for ancestor in cls.mro():
             if issubclass(ancestor, base_class) and ancestor != base_class:
                 if f in ancestor._meta.declared_fields.values():
@@ -229,7 +231,6 @@ class TypedModelMetaclass(ModelBase):
             cache_key = (forward, reverse, include_parents, include_hidden, seen_models is None)
 
             was_cached = cache_key in self._get_fields_cache
-
             fields = orig_get_fields(
                 forward=forward,
                 reverse=reverse,
@@ -237,7 +238,6 @@ class TypedModelMetaclass(ModelBase):
                 include_hidden=include_hidden,
                 seen_models=seen_models
             )
-
             # If it was cached already, it's because we've already filtered this, skip it
             if not was_cached:
                 fields = [f for f in fields if TypedModelMetaclass._model_has_field(cls, base_class, f)]
