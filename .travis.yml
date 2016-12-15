@@ -1,11 +1,12 @@
 language: python
 python:
   - "2.7"
-  - "3.3"
   - "3.4"
+  - "3.5"
 env:
-  - PIP_DJANGO='Django>=1.7,<1.8'
   - PIP_DJANGO='Django>=1.8,<1.9'
+  - PIP_DJANGO='Django>=1.9,<1.10'
+  - PIP_DJANGO='Django>=1.10,<1.11'
 install:
   - "pip install $PIP_DJANGO"
   - "pip install pyyaml coveralls"
