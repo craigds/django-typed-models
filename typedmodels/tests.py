@@ -165,8 +165,7 @@ class TestTypedModels(SetupStuff):
         for o in objs:
             print(o)
             self.assertIsInstance(o, AbstractVegetable)
-            self.assertTrue(o._deferred)
-            self.assertIsInstance(o.__class__.__dict__['yumness'], DeferredAttribute)
+            self.assertSetEqual(o.get_deferred_fields(), {'yumness'})
             # does a query, since this field was deferred
             self.assertIsInstance(o.yumness, float)
 

@@ -9,7 +9,6 @@ from django.core.serializers.xml_serializer import Serializer as _XmlSerializer
 from django.db import models
 from django.db.models.base import ModelBase
 from django.db.models.fields import Field
-from django.db.models.query_utils import DeferredAttribute, deferred_class_factory
 from django.utils.encoding import smart_text
 from django.utils.six import with_metaclass
 
@@ -179,7 +178,9 @@ class TypedModelMetaclass(ModelBase):
                 manager = cls._default_manager
             if manager is not None:
                 cls.add_to_class('objects', manager)
-                cls._default_manager = cls.objects
+                if django.VERSION < (1, 10):
+                    # _default_manager became readonly in django 1.10. luckily we don't actually need it.
+                    cls._default_manager = cls.objects
 
             # add a get_type_classes classmethod to allow fetching of all the subclasses (useful for admin)
 
@@ -297,15 +298,6 @@ class TypedModelMetaclass(ModelBase):
             del cls._meta.__dict__['fields']
 
 
-def get_deferred_class_for_instance(instance, desired_class):
-    """
-    Returns a deferred class (as used by instances in a .defer() queryset).
-    """
-    original_cls = instance.__class__
-    attrs = [k for (k, v) in original_cls.__dict__.items() if isinstance(v, DeferredAttribute)]
-    return deferred_class_factory(desired_class, attrs)
-
-
 class TypedModel(with_metaclass(TypedModelMetaclass, models.Model)):
     '''
     This class contains the functionality required to auto-downcast a model based
@@ -339,6 +331,7 @@ class TypedModel(with_metaclass(TypedModelMetaclass, models.Model)):
             def say_something(self):
                 return "meoww"
     '''
+    objects = TypedModelManager()
 
     type = models.CharField(choices=(), max_length=255, null=False, blank=False, db_index=True)
 
@@ -407,9 +400,12 @@ class TypedModel(with_metaclass(TypedModelMetaclass, models.Model)):
         current_cls = self.__class__
 
         if current_cls != correct_cls:
-            if self._deferred:
-                # create a new deferred class based on correct_cls instead of current_cls
-                correct_cls = get_deferred_class_for_instance(self, correct_cls)
+            if django.VERSION < (1, 10) and self._deferred:
+                # older django used a special class created on the fly for deferred model instances.
+                # So we need to create a new deferred class based on correct_cls instead of current_cls
+                from django.db.models.query_utils import DeferredAttribute, deferred_class_factory
+                attrs = [k for (k, v) in current_cls.__dict__.items() if isinstance(v, DeferredAttribute)]
+                correct_cls = deferred_class_factory(correct_cls, attrs)
             self.__class__ = correct_cls
 
     def save(self, *args, **kwargs):
