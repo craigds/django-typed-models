@@ -8,9 +8,6 @@ django-typed-models
 .. image:: https://coveralls.io/repos/craigds/django-typed-models/badge.png?branch=master
    :target: https://coveralls.io/r/craigds/django-typed-models?branch=master
 
-.. image:: https://api.flattr.com/button/flattr-badge-large.png
-    :target: https://flattr.com/submit/auto?user_id=craigds&url=https://github.com/craigds/django-typed-models/&title=django-typed-models&language=en_GB&tags=django,python,github&category=software
-
 Intro
 =====
 
@@ -48,24 +45,24 @@ An example says a bunch of words::
 
         def say_something(self):
             raise NotImplemented
-        
+
         def __repr__(self):
             return u'<%s: %s>' % (self.__class__.__name__, self.name)
-    
+
     class Canine(Animal):
         def say_something(self):
             return "woof"
-    
+
     class Feline(Animal):
         mice_eaten = models.IntegerField(
     	    default = 0
             )
-    
+
         def say_something(self):
             return "meoww"
 
 ::
-    
+
    # later
     >>> from myapp.models import Animal, Canine, Feline
     >>> Feline.objects.create(name="kitteh")
@@ -106,12 +103,4 @@ Requirements
 ============
 
 * Python 2.7 or 3.3+
-* Django 1.7+
-
-Help!
-=====
-
-If you've used this project and want to help me spend more time on open source, flattr me! 
-
-.. image:: https://api.flattr.com/button/flattr-badge-large.png
-    :target: https://flattr.com/submit/auto?user_id=craigds&url=https://github.com/craigds/django-typed-models/&title=django-typed-models&language=en_GB&tags=django,python,github&category=software
+* Django 1.8+
