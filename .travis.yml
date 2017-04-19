@@ -7,6 +7,7 @@ env:
   - PIP_DJANGO='Django>=1.8,<1.9'
   - PIP_DJANGO='Django>=1.9,<1.10'
   - PIP_DJANGO='Django>=1.10,<1.11'
+  - PIP_DJANGO='Django>=1.11,<1.12'
 install:
   - "pip install $PIP_DJANGO"
   - "pip install pyyaml coveralls"
