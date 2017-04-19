@@ -176,9 +176,16 @@ class TypedModelMetaclass(ModelBase):
                     pass
                 cls._default_manager.__class__ = Manager
                 manager = cls._default_manager
+            elif not isinstance(cls.objects, TypedModelManager):
+                class Manager(TypedModelManager, cls.objects.__class__):
+                    pass
+                cls.objects._class__ = Manager
+                manager = cls.objects
             if manager is not None:
                 cls.add_to_class('objects', manager)
-                cls.__class__._default_manager = cls.objects
+                if django.VERSION < (1, 10):
+                    # _default_manager became readonly in django 1.10.
+                    cls._default_manager = cls.objects
 
             # add a get_type_classes classmethod to allow fetching of all the subclasses (useful for admin)
 
@@ -329,6 +336,8 @@ class TypedModel(with_metaclass(TypedModelMetaclass, models.Model)):
             def say_something(self):
                 return "meoww"
     '''
+
+    objects = TypedModelManager()
 
     type = models.CharField(choices=(), max_length=255, null=False, blank=False, db_index=True)
 
