@@ -7,3 +7,4 @@ MANIFEST
 pip-log.txt
 *.egg-info
 *~
+.idea/
