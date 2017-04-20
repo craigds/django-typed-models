@@ -4,14 +4,13 @@ from django.contrib.contenttypes.models import ContentType
 
 try:
     import yaml
-
     PYYAML_AVAILABLE = True
+    del yaml
 except ImportError:
     PYYAML_AVAILABLE = False
 
 from django.core import serializers
 from django.test import TestCase
-from django.db.models.query_utils import DeferredAttribute
 
 from .test_models import AngryBigCat, Animal, BigCat, Canine, Feline, Parrot, AbstractVegetable, Vegetable, \
     Fruit, UniqueIdentifier
@@ -20,22 +19,22 @@ from .test_models import AngryBigCat, Animal, BigCat, Canine, Feline, Parrot, Ab
 class SetupStuff(TestCase):
     def setUp(self):
         kitteh = Feline.objects.create(name="kitteh")
-        kitteh_id = UniqueIdentifier.objects.create(name='kitteh', object_id=kitteh.pk,
+        UniqueIdentifier.objects.create(name='kitteh', object_id=kitteh.pk,
                                         content_type=ContentType.objects.get_for_model(kitteh))
         cheetah = Feline.objects.create(name="cheetah")
-        cheetah_id = UniqueIdentifier.objects.create(name='cheetah', object_id=cheetah.pk,
+        UniqueIdentifier.objects.create(name='cheetah', object_id=cheetah.pk,
                                          content_type=ContentType.objects.get_for_model(cheetah))
         fido = Canine.objects.create(name="fido")
-        fido_id = UniqueIdentifier.objects.create(name='fido', object_id=fido.pk,
+        UniqueIdentifier.objects.create(name='fido', object_id=fido.pk,
                                       content_type=ContentType.objects.get_for_model(fido))
         simba = BigCat.objects.create(name="simba")
-        simba_id = UniqueIdentifier.objects.create(name='simba', object_id=simba.pk,
+        UniqueIdentifier.objects.create(name='simba', object_id=simba.pk,
                                        content_type=ContentType.objects.get_for_model(simba))
         mufasa = AngryBigCat.objects.create(name="mufasa")
-        mufasa_id = UniqueIdentifier.objects.create(name='mufasa', object_id=mufasa.pk,
+        UniqueIdentifier.objects.create(name='mufasa', object_id=mufasa.pk,
                                         content_type=ContentType.objects.get_for_model(mufasa))
         kajtek = Parrot.objects.create(name="Kajtek")
-        kajetek_id = UniqueIdentifier.objects.create(name='kajtek', object_id=kajtek.pk,
+        UniqueIdentifier.objects.create(name='kajtek', object_id=kajtek.pk,
                                          content_type=ContentType.objects.get_for_model(kajtek))
 
 
