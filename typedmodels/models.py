@@ -167,20 +167,8 @@ class TypedModelMetaclass(ModelBase):
             cls._meta._typedmodels_original_fields = cls._meta.fields
             cls._meta._typedmodels_original_many_to_many = cls._meta.many_to_many
 
-            # set default manager. this will be inherited by subclasses, since they are proxy models
-            manager = None
-            if not cls._default_manager:
-                manager = TypedModelManager()
-            elif not isinstance(cls._default_manager, TypedModelManager):
-                class Manager(TypedModelManager, cls._default_manager.__class__):
-                    pass
-                cls._default_manager.__class__ = Manager
-                manager = cls._default_manager
-            elif not isinstance(cls.objects, TypedModelManager):
-                class Manager(TypedModelManager, cls.objects.__class__):
-                    pass
-                cls.objects._class__ = Manager
-                manager = cls.objects
+            manager = meta._get_model_manager(cls)
+
             if manager is not None:
                 cls.add_to_class('objects', manager)
                 if django.VERSION < (1, 10):
@@ -204,6 +192,27 @@ class TypedModelMetaclass(ModelBase):
             cls.get_types = classmethod(get_types)
 
         return cls
+
+    @staticmethod
+    def _get_model_manager(cls):
+        # set default manager. this will be inherited by subclasses, since they are proxy models
+        manager = None
+
+        def get_manager(subcls):
+            class Manager(TypedModelManager, subcls.__class__):
+                pass
+            return Manager
+
+        if not cls._default_manager:
+            manager = TypedModelManager()
+        elif not isinstance(cls._default_manager, TypedModelManager):
+            cls._default_manager.__class__ = get_manager(cls._default_manager)
+            manager = cls._default_manager
+        elif not isinstance(cls.objects, TypedModelManager):
+            cls.objects._class__ = get_manager(cls.objects)
+            manager = cls.objects
+
+        return manager
 
     @staticmethod
     def _model_has_field(cls, base_class, f, m2m=None):
