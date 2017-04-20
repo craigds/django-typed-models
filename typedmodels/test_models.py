@@ -88,6 +88,8 @@ class AbstractVegetable(TypedModel):
     color = models.CharField(max_length=255)
     yumness = models.FloatField(null=False)
 
+    mymanager = models.Manager()
+
 
 class Fruit(AbstractVegetable):
     pass

@@ -1,6 +1,7 @@
 import unittest
 
 from django.contrib.contenttypes.models import ContentType
+from django.db import models
 
 try:
     import yaml
@@ -12,6 +13,7 @@ except ImportError:
 from django.core import serializers
 from django.test import TestCase
 
+from .models import TypedModelManager
 from .test_models import AngryBigCat, Animal, BigCat, Canine, Feline, Parrot, AbstractVegetable, Vegetable, \
     Fruit, UniqueIdentifier
 
@@ -216,3 +218,18 @@ class TestTypedModels(SetupStuff):
             cls = uid.referent.__class__
             animal = cls.objects.filter(unique_identifiers__name=uid.name)
             self.assertTrue(isinstance(animal.first(), Animal))
+
+
+class TestManagers(TestCase):
+    def test_manager_classes(self):
+        self.assertIsInstance(Animal.objects, TypedModelManager)
+        self.assertIsInstance(Feline.objects, TypedModelManager)
+        self.assertIsInstance(BigCat.objects, TypedModelManager)
+
+        # This one has a custom manager defined, but that shouldn't prevent objects from working
+        self.assertIsInstance(AbstractVegetable.mymanager, models.Manager)
+        self.assertIsInstance(AbstractVegetable.objects, TypedModelManager)
+
+        # subclasses work the same way
+        self.assertIsInstance(Vegetable.mymanager, models.Manager)
+        self.assertIsInstance(Vegetable.objects, TypedModelManager)
