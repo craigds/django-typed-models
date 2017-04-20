@@ -30,7 +30,9 @@ Features
 Usage:
 ======
 
-An example says a bunch of words::
+An example says a bunch of words:
+
+.. code-block:: python
 
     # myapp/models.py
 
@@ -61,7 +63,7 @@ An example says a bunch of words::
         def say_something(self):
             return "meoww"
 
-::
+.. code-block:: python
 
    # later
     >>> from myapp.models import Animal, Canine, Feline
@@ -77,11 +79,15 @@ An example says a bunch of words::
     >>> print Feline.objects.all()
     [<Feline: kitteh>, <Feline: cheetah>]
 
-You can actually change the types of objects. Simply run an update query::
+You can actually change the types of objects. Simply run an update query:
+
+.. code-block:: python
 
     Feline.objects.update(type='myapp.bigcat')
 
-If you want to change the type of an object without refreshing it from the database, you can call ``recast``::
+If you want to change the type of an object without refreshing it from the database, you can call ``recast``:
+
+.. code-block:: python
 
     kitty.recast(BigCat)
     # or kitty.recast('myapp.bigcat')
@@ -102,5 +108,5 @@ Known issues
 Requirements
 ============
 
-* Python 2.7 or 3.3+
-* Django 1.8+
+
+* Any `supported Django and Python version <https://docs.djangoproject.com/en/dev/faq/install/#what-python-version-can-i-use-with-django/>`_
