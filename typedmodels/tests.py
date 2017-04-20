@@ -53,14 +53,14 @@ class TestTypedModels(SetupStuff):
             pass
 
     def test_get_types(self):
-        self.assertEqual(set(Animal.get_types()), set(['typedmodels.canine', 'typedmodels.bigcat', 'typedmodels.parrot', 'typedmodels.angrybigcat', 'typedmodels.feline']))
-        self.assertEqual(set(Canine.get_types()), set(['typedmodels.canine']))
-        self.assertEqual(set(Feline.get_types()), set(['typedmodels.bigcat', 'typedmodels.angrybigcat', 'typedmodels.feline']))
+        self.assertEqual(set(Animal.get_types()), {'typedmodels.canine', 'typedmodels.bigcat', 'typedmodels.parrot', 'typedmodels.angrybigcat', 'typedmodels.feline'})
+        self.assertEqual(set(Canine.get_types()), {'typedmodels.canine'})
+        self.assertEqual(set(Feline.get_types()), {'typedmodels.bigcat', 'typedmodels.angrybigcat', 'typedmodels.feline'})
 
     def test_get_type_classes(self):
-        self.assertEqual(set(Animal.get_type_classes()), set([Canine, BigCat, Parrot, AngryBigCat, Feline]))
-        self.assertEqual(set(Canine.get_type_classes()), set([Canine]))
-        self.assertEqual(set(Feline.get_type_classes()), set([BigCat, AngryBigCat, Feline]))
+        self.assertEqual(set(Animal.get_type_classes()), {Canine, BigCat, Parrot, AngryBigCat, Feline})
+        self.assertEqual(set(Canine.get_type_classes()), {Canine})
+        self.assertEqual(set(Feline.get_type_classes()), {BigCat, AngryBigCat, Feline})
 
     def test_type_choices(self):
         type_choices = set((cls for cls, _  in Animal._meta.get_field('type').choices))

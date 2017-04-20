@@ -162,19 +162,12 @@ class TypedModelMetaclass(ModelBase):
             cls._meta._typedmodels_original_fields = cls._meta.fields
             cls._meta._typedmodels_original_many_to_many = cls._meta.many_to_many
 
-            # set default manager. this will be inherited by subclasses, since they are proxy models
-            manager = None
-            if not cls._default_manager:
-                manager = TypedModelManager()
-            elif not isinstance(cls._default_manager, TypedModelManager):
-                class Manager(TypedModelManager, cls._default_manager.__class__):
-                    pass
-                cls._default_manager.__class__ = Manager
-                manager = cls._default_manager
+            manager = meta._get_model_manager(cls)
+
             if manager is not None:
                 cls.add_to_class('objects', manager)
                 if django.VERSION < (1, 10):
-                    # _default_manager became readonly in django 1.10. luckily we don't actually need it.
+                    # _default_manager became readonly in django 1.10.
                     cls._default_manager = cls.objects
 
             # add a get_type_classes classmethod to allow fetching of all the subclasses (useful for admin)
@@ -194,6 +187,27 @@ class TypedModelMetaclass(ModelBase):
             cls.get_types = classmethod(get_types)
 
         return cls
+
+    @staticmethod
+    def _get_model_manager(cls):
+        # set default manager. this will be inherited by subclasses, since they are proxy models
+        manager = None
+
+        def get_manager(subcls):
+            class Manager(TypedModelManager, subcls.__class__):
+                pass
+            return Manager
+
+        if not cls._default_manager:
+            manager = TypedModelManager()
+        elif not isinstance(cls._default_manager, TypedModelManager):
+            cls._default_manager.__class__ = get_manager(cls._default_manager)
+            manager = cls._default_manager
+        elif not isinstance(cls.objects, TypedModelManager):
+            cls.objects._class__ = get_manager(cls.objects)
+            manager = cls.objects
+
+        return manager
 
     @staticmethod
     def _model_has_field(cls, base_class, f, m2m=None):
@@ -276,6 +290,7 @@ class TypedModel(with_metaclass(TypedModelMetaclass, models.Model)):
             def say_something(self):
                 return "meoww"
     '''
+
     objects = TypedModelManager()
 
     type = models.CharField(choices=(), max_length=255, null=False, blank=False, db_index=True)
