@@ -22,6 +22,9 @@ from collections import OrderedDict
 class TypedModelManager(models.Manager):
     def get_queryset(self):
         qs = super(TypedModelManager, self).get_queryset()
+        return self._filter_by_type(qs)
+
+    def _filter_by_type(self, qs):
         if hasattr(self.model, '_typedmodels_type'):
             if len(self.model._typedmodels_subtypes) > 1:
                 qs = qs.filter(type__in=self.model._typedmodels_subtypes)
