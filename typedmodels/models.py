@@ -162,21 +162,6 @@ class TypedModelMetaclass(ModelBase):
             cls._meta._typedmodels_original_fields = cls._meta.fields
             cls._meta._typedmodels_original_many_to_many = cls._meta.many_to_many
 
-            # set default manager. this will be inherited by subclasses, since they are proxy models
-            manager = None
-            if not cls._default_manager:
-                manager = TypedModelManager()
-            elif not isinstance(cls._default_manager, TypedModelManager):
-                class Manager(TypedModelManager, cls._default_manager.__class__):
-                    pass
-                cls._default_manager.__class__ = Manager
-                manager = cls._default_manager
-            if manager is not None:
-                cls.add_to_class('objects', manager)
-                if django.VERSION < (1, 10):
-                    # _default_manager became readonly in django 1.10. luckily we don't actually need it.
-                    cls._default_manager = cls.objects
-
             # add a get_type_classes classmethod to allow fetching of all the subclasses (useful for admin)
 
             def get_type_classes(subcls):
