@@ -1,4 +1,5 @@
 build
+.cache
 *.pyc
 *.pyo
 dist

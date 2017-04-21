@@ -13,6 +13,6 @@ install:
   - "pip install pyyaml coveralls"
   - "pip install -e ."
 script:
-  coverage run runtests.py
+  coverage run bin/py.test --ds=test_settings typedmodels/tests.py
 after_success:
   coveralls
