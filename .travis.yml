@@ -9,8 +9,7 @@ env:
   - PIP_DJANGO='Django>=1.10,<1.11'
   - PIP_DJANGO='Django>=1.11,<1.12'
 install:
-  - "pip install $PIP_DJANGO"
-  - "pip install pyyaml coveralls"
+  - "pip install $PIP_DJANGO pyyaml coveralls pytest-django"
   - "pip install -e ."
 script:
   coverage run $VIRTUAL_ENV/bin/py.test --ds=test_settings typedmodels/tests.py
