@@ -186,7 +186,7 @@ class TypedModelMetaclass(ModelBase):
             return True
         if m2m in (False, None) and f in base_class._meta._typedmodels_original_fields:
             return True
-        if f in base_class._meta.virtual_fields:
+        if f in base_class._meta.private_fields:
             return True
         for ancestor in cls.mro():
             if issubclass(ancestor, base_class) and ancestor != base_class:
