@@ -186,8 +186,12 @@ class TypedModelMetaclass(ModelBase):
             return True
         if m2m in (False, None) and f in base_class._meta._typedmodels_original_fields:
             return True
-        if f in base_class._meta.virtual_fields:
-            return True
+        if django.VERSION < (1, 10):
+            if f in base_class._meta.virtual_fields:
+                return True
+        else:
+            if f in base_class._meta.private_fields:
+                return True
         for ancestor in cls.mro():
             if issubclass(ancestor, base_class) and ancestor != base_class:
                 if f in ancestor._meta.declared_fields.values():
