@@ -4,6 +4,7 @@ import django
 import types
 from functools import partial
 
+from django.core.exceptions import FieldDoesNotExist
 from django.core.serializers.python import Serializer as _PythonSerializer
 from django.core.serializers.xml_serializer import Serializer as _XmlSerializer
 from django.db import models
@@ -343,6 +344,19 @@ class TypedModel(with_metaclass(TypedModelMetaclass, models.Model)):
         if not getattr(self, '_typedmodels_type', None):
             raise RuntimeError("Untyped %s cannot be saved." % self.__class__.__name__)
         return super(TypedModel, self).save(*args, **kwargs)
+
+    def _get_unique_checks(self, exclude=None):
+        unique_checks, date_checks = super(TypedModel, self)._get_unique_checks(exclude=exclude)
+
+        for i, (model_class, field_names) in reversed(list(enumerate(unique_checks))):
+            for fn in field_names:
+                try:
+                    self._meta.get_field(fn)
+                except FieldDoesNotExist:
+                    # Some field in this unique check isn't actually on this proxy model.
+                    unique_checks.pop(i)
+                    break
+        return unique_checks, date_checks
 
 
 # Monkey patching Python and XML serializers in Django to use model name from base class.

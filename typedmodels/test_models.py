@@ -97,3 +97,15 @@ class Fruit(AbstractVegetable):
 
 class Vegetable(AbstractVegetable):
     pass
+
+
+class Parent(TypedModel):
+    a = models.CharField(max_length=1)
+
+
+class Child1(Parent):
+    b = models.OneToOneField('self', null=True)
+
+
+class Child2(Parent):
+    pass
