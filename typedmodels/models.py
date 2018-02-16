@@ -98,9 +98,14 @@ class TypedModelMetaclass(ModelBase):
                     field.do_related_class = types.MethodType(do_related_class, field)
                 if isinstance(field, models.fields.related.RelatedField):
                     # `rel.to` is required for Django <= 1.8, `remote_field.model` is required for Django >= 2.0.
-                    remote_field_model = field.rel.to if hasattr(field, 'rel') else field.remote_field.model
+                    if hasattr(field, 'rel'):
+                        remote_field = field.rel
+                        remote_field_model = remote_field.to
+                    else:
+                        remote_field = field.remote_field
+                        remote_field_model = remote_field.model
                     if isinstance(remote_field_model, TypedModel) and remote_field_model.base_class:
-                        field.rel.limit_choices_to['type__in'] = remote_field_model._typedmodels_subtypes
+                        remote_field.limit_choices_to['type__in'] = remote_field_model._typedmodels_subtypes
                         remote_field_model = remote_field_model.base_class
                 field.contribute_to_class(base_class, field_name)
                 classdict.pop(field_name)
