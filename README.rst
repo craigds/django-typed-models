@@ -2,10 +2,10 @@
 django-typed-models
 ===================
 
-.. image:: https://travis-ci.org/craigds/django-typed-models.png?branch=master
+.. image:: https://travis-ci.org/craigds/django-typed-models.svg?branch=master
    :target: https://travis-ci.org/craigds/django-typed-models
 
-.. image:: https://coveralls.io/repos/craigds/django-typed-models/badge.png?branch=master
+.. image:: https://coveralls.io/repos/craigds/django-typed-models/badge.svg?branch=master
    :target: https://coveralls.io/r/craigds/django-typed-models?branch=master
 
 Intro
