@@ -20,23 +20,41 @@ from .test_models import AngryBigCat, Animal, BigCat, Canine, Feline, Parrot, Ab
 @pytest.fixture
 def animals(db):
     kitteh = Feline.objects.create(name="kitteh")
-    UniqueIdentifier.objects.create(name='kitteh', object_id=kitteh.pk,
-                                    content_type=ContentType.objects.get_for_model(kitteh))
+    UniqueIdentifier.objects.create(
+        name='kitteh',
+        object_id=kitteh.pk,
+        content_type=ContentType.objects.get_for_model(kitteh),
+    )
     cheetah = Feline.objects.create(name="cheetah")
-    UniqueIdentifier.objects.create(name='cheetah', object_id=cheetah.pk,
-                                     content_type=ContentType.objects.get_for_model(cheetah))
+    UniqueIdentifier.objects.create(
+        name='cheetah',
+        object_id=cheetah.pk,
+        content_type=ContentType.objects.get_for_model(cheetah),
+    )
     fido = Canine.objects.create(name="fido")
-    UniqueIdentifier.objects.create(name='fido', object_id=fido.pk,
-                                  content_type=ContentType.objects.get_for_model(fido))
+    UniqueIdentifier.objects.create(
+        name='fido',
+        object_id=fido.pk,
+        content_type=ContentType.objects.get_for_model(fido),
+    )
     simba = BigCat.objects.create(name="simba")
-    UniqueIdentifier.objects.create(name='simba', object_id=simba.pk,
-                                   content_type=ContentType.objects.get_for_model(simba))
+    UniqueIdentifier.objects.create(
+        name='simba',
+        object_id=simba.pk,
+        content_type=ContentType.objects.get_for_model(simba),
+    )
     mufasa = AngryBigCat.objects.create(name="mufasa")
-    UniqueIdentifier.objects.create(name='mufasa', object_id=mufasa.pk,
-                                    content_type=ContentType.objects.get_for_model(mufasa))
+    UniqueIdentifier.objects.create(
+        name='mufasa',
+        object_id=mufasa.pk,
+        content_type=ContentType.objects.get_for_model(mufasa),
+    )
     kajtek = Parrot.objects.create(name="Kajtek")
-    UniqueIdentifier.objects.create(name='kajtek', object_id=kajtek.pk,
-                                     content_type=ContentType.objects.get_for_model(kajtek))
+    UniqueIdentifier.objects.create(
+        name='kajtek',
+        object_id=kajtek.pk,
+        content_type=ContentType.objects.get_for_model(kajtek),
+    )
 
 
 def test_cant_instantiate_base_model(db):
@@ -53,7 +71,10 @@ def test_cant_instantiate_base_model(db):
 
 
 def test_get_types():
-    assert set(Animal.get_types()) == {'typedmodels.canine', 'typedmodels.bigcat', 'typedmodels.parrot', 'typedmodels.angrybigcat', 'typedmodels.feline'}
+    assert set(Animal.get_types()) == {
+        'typedmodels.canine', 'typedmodels.bigcat', 'typedmodels.parrot',
+        'typedmodels.angrybigcat', 'typedmodels.feline'
+    }
     assert set(Canine.get_types()) == {'typedmodels.canine'}
     assert set(Feline.get_types()) == {'typedmodels.bigcat', 'typedmodels.angrybigcat', 'typedmodels.feline'}
 
@@ -65,7 +86,7 @@ def test_get_type_classes():
 
 
 def test_type_choices():
-    type_choices = {cls for cls, _  in Animal._meta.get_field('type').choices}
+    type_choices = {cls for cls, _ in Animal._meta.get_field('type').choices}
     assert type_choices == set(Animal.get_types())
 
 
