@@ -107,7 +107,6 @@ class TypedModelMetaclass(ModelBase):
                         remote_field_model = remote_field.model
                     if isinstance(remote_field_model, TypedModel) and remote_field_model.base_class:
                         remote_field.limit_choices_to['type__in'] = remote_field_model._typedmodels_subtypes
-                        remote_field_model = remote_field_model.base_class
                 field.contribute_to_class(base_class, field_name)
                 classdict.pop(field_name)
             base_class._meta.fields_from_subclasses.update(declared_fields)
