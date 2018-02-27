@@ -10,7 +10,7 @@ from django.utils.six import text_type
 
 class UniqueIdentifier(models.Model):
     referent = GenericForeignKey()
-    content_type = ForeignKey(ContentType, null=True, blank=True)
+    content_type = ForeignKey(ContentType, null=True, blank=True, on_delete=models.CASCADE)
     object_id = PositiveIntegerField(null=True, blank=True)
     created = models.DateTimeField(db_index=True, auto_now_add=True)
     name = CharField(max_length=255)
@@ -104,7 +104,7 @@ class Parent(TypedModel):
 
 
 class Child1(Parent):
-    b = models.OneToOneField('self', null=True)
+    b = models.OneToOneField('self', null=True, on_delete=models.CASCADE)
 
 
 class Child2(Parent):
