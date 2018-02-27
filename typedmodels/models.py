@@ -1,19 +1,19 @@
-# encoding: utf-8
+# coding: utf-8
+from __future__ import absolute_import, division, print_function, unicode_literals
 
-import django
 import types
 from functools import partial
 
+import django
 from django.core.exceptions import FieldDoesNotExist
 from django.core.serializers.python import Serializer as _PythonSerializer
 from django.core.serializers.xml_serializer import Serializer as _XmlSerializer
 from django.db import models
 from django.db.models.base import ModelBase
 from django.db.models.fields import Field
+from django.db.models.options import make_immutable_fields_list
 from django.utils.encoding import smart_text
 from django.utils.six import with_metaclass
-
-from django.db.models.options import make_immutable_fields_list
 
 
 class TypedModelManager(models.Manager):
@@ -134,7 +134,11 @@ class TypedModelMetaclass(ModelBase):
             cls._typedmodels_type = typ
             cls._typedmodels_subtypes = [typ]
             if typ in base_class._typedmodels_registry:
-                raise ValueError("Can't register %s type %r to %r (already registered to %r )" % (typ, classname, base_class._typedmodels_registry))
+                raise ValueError(
+                    "Can't register %s type %r to %r (already registered to %r )" % (
+                        typ, classname, base_class._typedmodels_registry
+                    )
+                )
             base_class._typedmodels_registry[typ] = cls
 
             type_name = getattr(cls._meta, 'verbose_name', cls.__name__)
@@ -156,9 +160,11 @@ class TypedModelMetaclass(ModelBase):
             # look for any other proxy superclasses, they'll need to know
             # about this subclass
             for superclass in cls.mro():
-                if (issubclass(superclass, base_class)
-                        and superclass not in (cls, base_class)
-                        and hasattr(superclass, '_typedmodels_type')):
+                if (
+                    issubclass(superclass, base_class)
+                    and superclass not in (cls, base_class)
+                    and hasattr(superclass, '_typedmodels_type')
+                ):
                     superclass._typedmodels_subtypes.append(typ)
 
             meta._patch_fields_cache(cls, base_class)

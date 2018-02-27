@@ -1,4 +1,5 @@
 build
+.pytest_cache
 .cache
 *.pyc
 *.pyo
