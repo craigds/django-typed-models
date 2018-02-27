@@ -74,7 +74,7 @@ class AngryBigCat(BigCat):
 
 
 class Parrot(Animal):
-    known_words = models.IntegerField()
+    known_words = models.IntegerField(null=True)
 
     def say_something(self):
         return "hello"

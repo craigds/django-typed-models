@@ -278,3 +278,10 @@ def test_uniqueness_check_on_child(db):
     # Regression test for https://github.com/craigds/django-typed-models/issues/42
     # FieldDoesNotExist: Child2 has no field named 'b'
     child2.validate_unique()
+
+
+def test_non_nullable_subclass_field_warning():
+    with pytest.warns(UserWarning):
+        class Bug(Animal):
+            # should have null=True
+            num_legs = models.PositiveIntegerField()

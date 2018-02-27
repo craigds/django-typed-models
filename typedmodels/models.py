@@ -1,8 +1,9 @@
 # coding: utf-8
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import types
 from functools import partial
+import types
+import warnings
 
 import django
 from django.core.exceptions import FieldDoesNotExist
@@ -80,11 +81,21 @@ class TypedModelMetaclass(ModelBase):
             declared_fields = dict((name, element) for name, element in classdict.items() if isinstance(element, Field))
 
             for field_name, field in declared_fields.items():
-                # Warnings will be triggered by django's system
-                # check for M2M fields setting if we set null to True. Prevent
-                # those warnings by setting null only for non-M2M fields.
-                if not field.many_to_many:
+                # We need fields defined on subclasses to either:
+                #  * be a ManyToManyField
+                #  * have a default
+                #  * be nullable
+                if not (field.many_to_many or field.null or field.has_default()):
+                    # https://github.com/craigds/django-typed-models/issues/39
+                    warnings.warn(
+                        "Field {}.{} was implicitly set to null=True. "
+                        "This will cause an error in typedmodels 0.9. "
+                        "Add null=True to the field definition to avoid this warning."
+                        .format(classname, field_name),
+                        UserWarning,
+                    )
                     field.null = True
+
                 if isinstance(field, models.fields.related.RelatedField):
                     # Monkey patching field instance to make do_related_class use created class instead of base_class.
                     # Actually that class doesn't exist yet, so we just monkey patch base_class for a while,
