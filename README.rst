@@ -13,7 +13,7 @@ Intro
 
 ``django-typed-models`` provides an extra type of model inheritance for Django. It is similar to single-table inheritance in Ruby on Rails.
 
-The concrete type of each object is stored in the database, and when the object is retrieved it is automatically cast to the correct concrete type.
+The actual type of each object is stored in the database, and when the object is retrieved it is automatically cast to the correct model class.
 
 Licensed under the New BSD License.
 
@@ -21,9 +21,9 @@ Licensed under the New BSD License.
 Features
 ========
 
-* Automatic downcasting of models from querysets
+* Models in querysets have the right class automatically
 * All models subclassing a common base are stored in the same table
-* object types are stored in a 'type' field in the database
+* Object types are stored in a 'type' field in the database
 * No extra queries or joins to retrieve multiple types
 
 
@@ -94,10 +94,24 @@ If you want to change the type of an object without refreshing it from the datab
     kitty.save()
 
 
+Listing subclasses
+==================
+
+Occasionally you might need to list the various subclasses of your abstract type.
+
+One current use for this is connecting signals, since currently they don't fire on the base class (see `#1 <https://github.com/craigds/django-typed-models/issues/1>`_ )
+
+.. code-block:: python
+
+    for sender in Animal.get_type_classes():
+        post_save.connect(on_animal_saved, sender=sender)
+
+
 Limitations
 ===========
 
-Since all objects are stored in the same table, all fields defined in subclasses are nullable.
+* Since all objects are stored in the same table, all fields defined in subclasses are nullable.
+* Fields defined on subclasses can only be defined on *one* subclass.
 
 
 Requirements
