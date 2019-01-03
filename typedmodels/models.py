@@ -14,7 +14,7 @@ from django.db.models.base import ModelBase
 from django.db.models.fields import Field
 from django.db.models.options import make_immutable_fields_list
 from django.utils.encoding import smart_text
-from django.utils.six import with_metaclass
+from django.utils.six import with_metaclass, string_types
 
 
 class TypedModelManager(models.Manager):
@@ -325,19 +325,31 @@ class TypedModel(with_metaclass(TypedModelMetaclass, models.Model)):
             self.recast()
 
     def recast(self, typ=None):
-        if not self.type:
-            if not hasattr(self, '_typedmodels_type'):
-                # Ideally we'd raise an error here, but the django admin likes to call
-                # model() and doesn't expect an error.
-                # Instead, we raise an error when the object is saved.
-                return
-            self.type = self._typedmodels_type
-
         for base in self.__class__.mro():
             if issubclass(base, TypedModel) and hasattr(base, '_typedmodels_registry'):
                 break
         else:
             raise ValueError("No suitable base class found to recast!")
+
+        if not self.type:
+            if not hasattr(self, '_typedmodels_type'):
+                # This is an instance of an untyped model
+                if typ is None:
+                    # recast() is probably being called by __init__() here.
+                    # Ideally we'd raise an error here, but the django admin likes to call
+                    # model() and doesn't expect an error.
+                    # Instead, we raise an error when the object is saved.
+                    return
+                else:
+                    # being called explicitly, with a type. Just set the type from that.
+                    if issubclass(typ, base) and hasattr(typ, '_typedmodels_type'):
+                        self.type = typ._typedmodels_type
+                    elif isinstance(typ, string_types) and typ in base._typedmodels_registry:
+                        self.type = typ
+                    else:
+                        raise ValueError("Unknown type: %r" % typ)
+            else:
+                self.type = self._typedmodels_type
 
         if typ is None:
             typ = self.type

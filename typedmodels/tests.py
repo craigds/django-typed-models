@@ -285,3 +285,10 @@ def test_non_nullable_subclass_field_warning():
         class Bug(Animal):
             # should have null=True
             num_legs = models.PositiveIntegerField()
+
+
+def test_explicit_recast_on_untyped_instance():
+    animal = Animal()
+    assert not animal.type
+    animal.recast(Feline)
+    assert animal.type == 'typedmodels.feline'
