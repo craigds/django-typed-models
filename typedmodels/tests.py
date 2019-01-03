@@ -232,7 +232,7 @@ def test_queryset_defer(db):
 @pytest.mark.parametrize('fmt', [
     'xml',
     'json',
-    pytest.mark.skipif(not PYYAML_AVAILABLE, reason='PyYAML is not available')("yaml"),
+    pytest.param('yaml', marks=[pytest.mark.skipif(not PYYAML_AVAILABLE, reason='PyYAML is not available')]),
 ])
 def test_serialization(fmt, animals):
     """Helper function used to check serialization and deserialization for concrete format."""
