@@ -5,7 +5,6 @@ from functools import partial
 import types
 import warnings
 
-import django
 from django.core.exceptions import FieldDoesNotExist
 from django.core.serializers.python import Serializer as _PythonSerializer
 from django.core.serializers.xml_serializer import Serializer as _XmlSerializer
@@ -109,15 +108,9 @@ class TypedModelMetaclass(ModelBase):
                         cls._meta.model_name = base_class_name.lower()
                     field.do_related_class = types.MethodType(do_related_class, field)
                 if isinstance(field, models.fields.related.RelatedField):
-                    # `rel.to` is required for Django <= 1.8, `remote_field.model` is required for Django >= 2.0.
-                    if hasattr(field, 'rel'):
-                        remote_field = field.rel
-                        remote_field_model = remote_field.to
-                    else:
-                        remote_field = field.remote_field
-                        remote_field_model = remote_field.model
-                    if isinstance(remote_field_model, TypedModel) and remote_field_model.base_class:
-                        remote_field.limit_choices_to['type__in'] = remote_field_model._typedmodels_subtypes
+                    remote_field = field.remote_field
+                    if isinstance(remote_field.model, TypedModel) and remote_field.model.base_class:
+                        remote_field.limit_choices_to['type__in'] = remote_field.model._typedmodels_subtypes
                 field.contribute_to_class(base_class, field_name)
                 classdict.pop(field_name)
             base_class._meta.fields_from_subclasses.update(declared_fields)
@@ -155,18 +148,9 @@ class TypedModelMetaclass(ModelBase):
             type_name = getattr(cls._meta, 'verbose_name', cls.__name__)
             type_field = base_class._meta.get_field('type')
             choices = tuple(list(type_field.choices) + [(typ, type_name)])
-            choices_field = '_choices' if django.VERSION < (1, 9) else 'choices'
-            setattr(type_field, choices_field, choices)
+            type_field.choices = choices
 
             cls._meta.declared_fields = declared_fields
-
-            if django.VERSION < (1, 9):
-                # Update related fields in base_class so they refer to cls.
-                for field_name, related_field in declared_fields.items():
-                    if isinstance(related_field, models.fields.related.RelatedField):
-                        # Unfortunately RelatedObject is recreated in ./manage.py validate, so false positives for name clashes
-                        # may be reported until #19399 is fixed - see https://code.djangoproject.com/ticket/19399
-                        related_field.related.opts = cls._meta
 
             # look for any other proxy superclasses, they'll need to know
             # about this subclass
@@ -211,12 +195,8 @@ class TypedModelMetaclass(ModelBase):
             return True
         if m2m in (False, None) and f in base_class._meta._typedmodels_original_fields:
             return True
-        if django.VERSION < (1, 10):
-            if f in base_class._meta.virtual_fields:
-                return True
-        else:
-            if f in base_class._meta.private_fields:
-                return True
+        if f in base_class._meta.private_fields:
+            return True
         for ancestor in cls.mro():
             if issubclass(ancestor, base_class) and ancestor != base_class:
                 if f in ancestor._meta.declared_fields.values():
@@ -356,12 +336,6 @@ class TypedModel(with_metaclass(TypedModelMetaclass, models.Model)):
         current_cls = self.__class__
 
         if current_cls != correct_cls:
-            if django.VERSION < (1, 10) and self._deferred:
-                # older django used a special class created on the fly for deferred model instances.
-                # So we need to create a new deferred class based on correct_cls instead of current_cls
-                from django.db.models.query_utils import DeferredAttribute, deferred_class_factory
-                attrs = [k for (k, v) in current_cls.__dict__.items() if isinstance(v, DeferredAttribute)]
-                correct_cls = deferred_class_factory(correct_cls, attrs)
             self.__class__ = correct_cls
 
     def save(self, *args, **kwargs):
