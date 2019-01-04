@@ -320,14 +320,6 @@ class TypedModel(with_metaclass(TypedModelMetaclass, models.Model)):
                     # model() and doesn't expect an error.
                     # Instead, we raise an error when the object is saved.
                     return
-                else:
-                    # being called explicitly, with a type. Just set the type from that.
-                    if isinstance(typ, type) and issubclass(typ, base) and hasattr(typ, '_typedmodels_type'):
-                        self.type = typ._typedmodels_type
-                    elif isinstance(typ, string_types) and typ in base._typedmodels_registry:
-                        self.type = typ
-                    else:
-                        raise ValueError("Unknown type: %r" % typ)
             else:
                 self.type = self._typedmodels_type
 

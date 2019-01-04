@@ -59,9 +59,9 @@ def animals(db):
 
 def test_can_instantiate_base_model(db):
     # direct instantiation works fine without a type, as long as you don't save
-    x = Animal()
-    assert not x.type
-    assert type(x) is Animal
+    animal = Animal()
+    assert not animal.type
+    assert type(animal) is Animal
 
 
 def test_cant_save_untyped_base_model(db):
