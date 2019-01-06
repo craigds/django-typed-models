@@ -2,6 +2,10 @@
 
 Backward-incompatible changes for released versions are listed here (for 0.5 onwards.)
 
+## 0.9
+
+Removed shims for unsupported django versions (now supports 1.11+)
+
 ## 0.8
 
 Fields defined in typed subclasses no longer get `null=True` added silently.
