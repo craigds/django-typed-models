@@ -57,7 +57,14 @@ def animals(db):
     )
 
 
-def test_cant_instantiate_base_model(db):
+def test_can_instantiate_base_model(db):
+    # direct instantiation works fine without a type, as long as you don't save
+    animal = Animal()
+    assert not animal.type
+    assert type(animal) is Animal
+
+
+def test_cant_save_untyped_base_model(db):
     # direct instantiation shouldn't work
     with pytest.raises(RuntimeError):
         Animal.objects.create(name="uhoh")
@@ -285,3 +292,19 @@ def test_non_nullable_subclass_field_warning():
         class Bug(Animal):
             # should have null=True
             num_legs = models.PositiveIntegerField()
+
+
+def test_explicit_recast_with_class_on_untyped_instance():
+    animal = Animal()
+    assert not animal.type
+    animal.recast(Feline)
+    assert animal.type == 'typedmodels.feline'
+    assert type(animal) is Feline
+
+
+def test_explicit_recast_with_string_on_untyped_instance():
+    animal = Animal()
+    assert not animal.type
+    animal.recast('typedmodels.feline')
+    assert animal.type == 'typedmodels.feline'
+    assert type(animal) is Feline
