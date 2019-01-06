@@ -13,7 +13,7 @@ from django.db.models.base import ModelBase
 from django.db.models.fields import Field
 from django.db.models.options import make_immutable_fields_list
 from django.utils.encoding import smart_text
-from django.utils.six import with_metaclass, string_types
+from django.utils.six import with_metaclass
 
 
 class TypedModelManager(models.Manager):
