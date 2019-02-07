@@ -14,7 +14,7 @@ from django.core import serializers
 
 from .models import TypedModelManager
 from .test_models import AngryBigCat, Animal, BigCat, Canine, Feline, Parrot, AbstractVegetable, Vegetable, \
-    Fruit, UniqueIdentifier, Child2
+    Fruit, UniqueIdentifier, Child2, Employee
 
 
 @pytest.fixture
@@ -308,3 +308,15 @@ def test_explicit_recast_with_string_on_untyped_instance():
     animal.recast('typedmodels.feline')
     assert animal.type == 'typedmodels.feline'
     assert type(animal) is Feline
+
+
+def test_same_field_name_in_two_subclasses():
+    with pytest.raises(ValueError):
+        class Tester1(Employee):
+            name = models.CharField(max_length=255, blank=True, null=True)
+    with pytest.raises(ValueError):
+        class Tester2(Employee):
+            name = models.CharField(max_length=254, null=True)
+    with pytest.raises(ValueError):
+        class Tester3(Employee):
+            name = models.IntegerField(null=True)
