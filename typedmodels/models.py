@@ -139,8 +139,8 @@ class TypedModelMetaclass(ModelBase):
             cls._typedmodels_subtypes = [typ]
             if typ in base_class._typedmodels_registry:
                 raise ValueError(
-                    "Can't register %s type %r to %r (already registered to %r )" % (
-                        typ, classname, base_class._typedmodels_registry
+                    "Can't register type %r to %r (already registered to %r)" % (
+                        typ, classname, base_class._typedmodels_registry[typ].__name__
                     )
                 )
             base_class._typedmodels_registry[typ] = cls
