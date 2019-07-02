@@ -12,7 +12,7 @@ except ImportError:
 
 from django.core import serializers
 
-from .models import TypedModelManager
+from .models import TypedModel, TypedModelManager
 from .test_models import AngryBigCat, Animal, BigCat, Canine, Feline, Parrot, AbstractVegetable, Vegetable, \
     Fruit, UniqueIdentifier, Child2
 
@@ -285,6 +285,31 @@ def test_uniqueness_check_on_child(db):
     # Regression test for https://github.com/craigds/django-typed-models/issues/42
     # FieldDoesNotExist: Child2 has no field named 'b'
     child2.validate_unique()
+
+
+def test_subclass_can_share_field_with_same_name():
+
+    class BaseClass(TypedModel):
+        pass
+
+    class Test1(BaseClass):
+        a = models.BooleanField()
+
+    class Test2(BaseClass):
+        a = models.BooleanField()
+
+
+def test_subclass_cannot_have_differing_fields_with_same_name():
+
+    class BaseClass(TypedModel):
+        pass
+
+    class Test1(BaseClass):
+        a = models.BooleanField()
+
+    with pytest.raises(ValueError):
+        class Test2(BaseClass):
+            a = models.CharField()
 
 
 def test_non_nullable_subclass_field_warning():

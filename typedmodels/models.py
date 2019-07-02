@@ -111,7 +111,18 @@ class TypedModelMetaclass(ModelBase):
                     remote_field = field.remote_field
                     if isinstance(remote_field.model, TypedModel) and remote_field.model.base_class:
                         remote_field.limit_choices_to['type__in'] = remote_field.model._typedmodels_subtypes
-                field.contribute_to_class(base_class, field_name)
+                try:
+                    base_field = base_class._meta.get_field(field_name)
+                    # https://docs.djangoproject.com/en/2.2/ref/models/fields/#django.db.models.Field.deconstruct
+                    # ignore field name, we only care about column name + configuration
+                    if base_field.deconstruct()[1:] != field.deconstruct()[1:]:
+                        raise ValueError(
+                            "Can't register field %s to %s (already registered to %s)" % (
+                                field_name, classname, base_class.__name__
+                            )
+                        )
+                except FieldDoesNotExist:
+                    field.contribute_to_class(base_class, field_name)
                 classdict.pop(field_name)
             base_class._meta.fields_from_subclasses.update(declared_fields)
 
