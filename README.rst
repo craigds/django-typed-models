@@ -107,6 +107,31 @@ One current use for this is connecting signals, since currently they don't fire 
         post_save.connect(on_animal_saved, sender=sender)
 
 
+Django admin
+============
+
+If you plan to use typed models with Django admin, consider inheriting from typedmodels.admin.TypedModelAdmin.
+This will hide the type field from subclasses admin by default, and allow to create new instances from the base class admin.
+
+.. code-block:: python
+
+    from django.contrib import admin
+    from typedmodels.admin import TypedModelAdmin
+    from .models import Animal, Canine, Feline
+
+    @admin.register(Animal)
+    class AnimalAdmin(TypedModelAdmin):
+        pass
+
+    @admin.register(Canine)
+    class CanineAdmin(TypedModelAdmin):
+        pass
+
+    @admin.register(Feline)
+    class FelineAdmin(TypedModelAdmin):
+        pass
+
+
 Limitations
 ===========
 
