@@ -2,32 +2,33 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import ForeignKey, PositiveIntegerField, CharField
-from django.utils.encoding import python_2_unicode_compatible
 from typedmodels.models import TypedModel
-
-from django.utils.six import text_type
 
 
 class UniqueIdentifier(models.Model):
     referent = GenericForeignKey()
-    content_type = ForeignKey(ContentType, null=True, blank=True, on_delete=models.CASCADE)
+    content_type = ForeignKey(
+        ContentType, null=True, blank=True, on_delete=models.CASCADE
+    )
     object_id = PositiveIntegerField(null=True, blank=True)
     created = models.DateTimeField(db_index=True, auto_now_add=True)
     name = CharField(max_length=255)
 
 
 class UniqueIdentifierMixin(models.Model):
-    unique_identifiers = GenericRelation(UniqueIdentifier, related_query_name='referents')
+    unique_identifiers = GenericRelation(
+        UniqueIdentifier, related_query_name='referents'
+    )
 
     class Meta:
         abstract = True
 
 
-@python_2_unicode_compatible
 class Animal(TypedModel, UniqueIdentifierMixin):
     """
     Abstract model
     """
+
     name = models.CharField(max_length=255)
 
     def say_something(self):
@@ -37,7 +38,7 @@ class Animal(TypedModel, UniqueIdentifierMixin):
     #     return u'<%s: %s>' % (self.__class__.__name__, self.name)
 
     def __str__(self):
-        return text_type(self.name)
+        return str(self.name)
 
 
 class Canine(Animal):
@@ -65,9 +66,8 @@ class AngryBigCat(BigCat):
     """
     This model tests triple-proxied models. Because we can
     """
-    canines_eaten = models.ManyToManyField(
-        Canine
-    )
+
+    canines_eaten = models.ManyToManyField(Canine)
 
     def say_something(self):
         return "raawr"
@@ -84,6 +84,7 @@ class AbstractVegetable(TypedModel):
     """
     This is an entirely different typed model.
     """
+
     name = models.CharField(max_length=255)
     color = models.CharField(max_length=255)
     yumness = models.FloatField(null=False)

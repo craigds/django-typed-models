@@ -1,6 +1,8 @@
-INSTALLED_APPS = ('typedmodels', 'django.contrib.contenttypes')
+INSTALLED_APPS = (
+    'typedmodels',
+    'django.contrib.contenttypes',
+    'testapp',
+)
 MIDDLEWARE_CLASSES = ()
-DATABASES = {
-    'default': {'ENGINE': 'django.db.backends.sqlite3'}
-}
+DATABASES = {'default': {'NAME': ':memory:', 'ENGINE': 'django.db.backends.sqlite3'}}
 SECRET_KEY = 'abc123'

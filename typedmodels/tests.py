@@ -5,6 +5,7 @@ import pytest
 
 try:
     import yaml
+
     PYYAML_AVAILABLE = True
     del yaml
 except ImportError:
@@ -13,8 +14,19 @@ except ImportError:
 from django.core import serializers
 
 from .models import TypedModelManager
-from .test_models import AngryBigCat, Animal, BigCat, Canine, Feline, Parrot, AbstractVegetable, Vegetable, \
-    Fruit, UniqueIdentifier, Child2
+from testapp.models import (
+    AngryBigCat,
+    Animal,
+    BigCat,
+    Canine,
+    Feline,
+    Parrot,
+    AbstractVegetable,
+    Vegetable,
+    Fruit,
+    UniqueIdentifier,
+    Child2,
+)
 
 
 @pytest.fixture
@@ -70,7 +82,7 @@ def test_cant_save_untyped_base_model(db):
         Animal.objects.create(name="uhoh")
 
     # ... unless a type is specified
-    Animal.objects.create(name="dingo", type="typedmodels.canine")
+    Animal.objects.create(name="dingo", type="testapp.canine")
 
     # ... unless that type is stupid
     with pytest.raises(ValueError):
@@ -79,15 +91,28 @@ def test_cant_save_untyped_base_model(db):
 
 def test_get_types():
     assert set(Animal.get_types()) == {
-        'typedmodels.canine', 'typedmodels.bigcat', 'typedmodels.parrot',
-        'typedmodels.angrybigcat', 'typedmodels.feline'
+        'testapp.canine',
+        'testapp.bigcat',
+        'testapp.parrot',
+        'testapp.angrybigcat',
+        'testapp.feline',
     }
-    assert set(Canine.get_types()) == {'typedmodels.canine'}
-    assert set(Feline.get_types()) == {'typedmodels.bigcat', 'typedmodels.angrybigcat', 'typedmodels.feline'}
+    assert set(Canine.get_types()) == {'testapp.canine'}
+    assert set(Feline.get_types()) == {
+        'testapp.bigcat',
+        'testapp.angrybigcat',
+        'testapp.feline',
+    }
 
 
 def test_get_type_classes():
-    assert set(Animal.get_type_classes()) == {Canine, BigCat, Parrot, AngryBigCat, Feline}
+    assert set(Animal.get_type_classes()) == {
+        Canine,
+        BigCat,
+        Parrot,
+        AngryBigCat,
+        Feline,
+    }
     assert set(Canine.get_type_classes()) == {Canine}
     assert set(Feline.get_type_classes()) == {BigCat, AngryBigCat, Feline}
 
@@ -101,24 +126,38 @@ def test_base_model_queryset(animals):
     # all objects returned
     qs = Animal.objects.all().order_by('type')
     assert [obj.type for obj in qs] == [
-        'typedmodels.angrybigcat', 'typedmodels.bigcat', 'typedmodels.canine',
-        'typedmodels.feline', 'typedmodels.feline', 'typedmodels.parrot'
+        'testapp.angrybigcat',
+        'testapp.bigcat',
+        'testapp.canine',
+        'testapp.feline',
+        'testapp.feline',
+        'testapp.parrot',
     ]
-    assert [type(obj) for obj in qs] == [AngryBigCat, BigCat, Canine, Feline, Feline, Parrot]
+    assert [type(obj) for obj in qs] == [
+        AngryBigCat,
+        BigCat,
+        Canine,
+        Feline,
+        Feline,
+        Parrot,
+    ]
 
 
 def test_proxy_model_queryset(animals):
     qs = Canine.objects.all().order_by('type')
     assert qs.count() == 1
     assert len(qs) == 1
-    assert [obj.type for obj in qs] == ['typedmodels.canine']
+    assert [obj.type for obj in qs] == ['testapp.canine']
     assert [type(obj) for obj in qs] == [Canine]
 
     qs = Feline.objects.all().order_by('type')
     assert qs.count() == 4
     assert len(qs) == 4
     assert [obj.type for obj in qs] == [
-        'typedmodels.angrybigcat', 'typedmodels.bigcat', 'typedmodels.feline', 'typedmodels.feline'
+        'testapp.angrybigcat',
+        'testapp.bigcat',
+        'testapp.feline',
+        'testapp.feline',
     ]
     assert [type(obj) for obj in qs] == [AngryBigCat, BigCat, Feline, Feline]
 
@@ -127,7 +166,7 @@ def test_doubly_proxied_model_queryset(animals):
     qs = BigCat.objects.all().order_by('type')
     assert qs.count() == 2
     assert len(qs) == 2
-    assert [obj.type for obj in qs] == ['typedmodels.angrybigcat', 'typedmodels.bigcat']
+    assert [obj.type for obj in qs] == ['testapp.angrybigcat', 'testapp.bigcat']
     assert [type(obj) for obj in qs] == [AngryBigCat, BigCat]
 
 
@@ -135,29 +174,29 @@ def test_triply_proxied_model_queryset(animals):
     qs = AngryBigCat.objects.all().order_by('type')
     assert qs.count() == 1
     assert len(qs) == 1
-    assert [obj.type for obj in qs] == ['typedmodels.angrybigcat']
+    assert [obj.type for obj in qs] == ['testapp.angrybigcat']
     assert [type(obj) for obj in qs] == [AngryBigCat]
 
 
 def test_recast_auto(animals):
     cat = Feline.objects.get(name='kitteh')
-    cat.type = 'typedmodels.bigcat'
+    cat.type = 'testapp.bigcat'
     cat.recast()
-    assert cat.type == 'typedmodels.bigcat'
+    assert cat.type == 'testapp.bigcat'
     assert type(cat) == BigCat
 
 
 def test_recast_string(animals):
     cat = Feline.objects.get(name='kitteh')
-    cat.recast('typedmodels.bigcat')
-    assert cat.type == 'typedmodels.bigcat'
+    cat.recast('testapp.bigcat')
+    assert cat.type == 'testapp.bigcat'
     assert type(cat) == BigCat
 
 
 def test_recast_modelclass(animals):
     cat = Feline.objects.get(name='kitteh')
     cat.recast(BigCat)
-    assert cat.type == 'typedmodels.bigcat'
+    assert cat.type == 'testapp.bigcat'
     assert type(cat) == BigCat
 
 
@@ -236,16 +275,28 @@ def test_queryset_defer(db):
         assert isinstance(o.yumness, float)
 
 
-@pytest.mark.parametrize('fmt', [
-    'xml',
-    'json',
-    pytest.param('yaml', marks=[pytest.mark.skipif(not PYYAML_AVAILABLE, reason='PyYAML is not available')]),
-])
+@pytest.mark.parametrize(
+    'fmt',
+    [
+        'xml',
+        'json',
+        pytest.param(
+            'yaml',
+            marks=[
+                pytest.mark.skipif(
+                    not PYYAML_AVAILABLE, reason='PyYAML is not available'
+                )
+            ],
+        ),
+    ],
+)
 def test_serialization(fmt, animals):
     """Helper function used to check serialization and deserialization for concrete format."""
     animals = Animal.objects.order_by('pk')
     serialized_animals = serializers.serialize(fmt, animals)
-    deserialized_animals = [wrapper.object for wrapper in serializers.deserialize(fmt, serialized_animals)]
+    deserialized_animals = [
+        wrapper.object for wrapper in serializers.deserialize(fmt, serialized_animals)
+    ]
     assert set(deserialized_animals) == set(animals)
 
 
@@ -289,6 +340,7 @@ def test_uniqueness_check_on_child(db):
 
 def test_non_nullable_subclass_field_warning():
     with pytest.warns(UserWarning):
+
         class Bug(Animal):
             # should have null=True
             num_legs = models.PositiveIntegerField()
@@ -298,13 +350,13 @@ def test_explicit_recast_with_class_on_untyped_instance():
     animal = Animal()
     assert not animal.type
     animal.recast(Feline)
-    assert animal.type == 'typedmodels.feline'
+    assert animal.type == 'testapp.feline'
     assert type(animal) is Feline
 
 
 def test_explicit_recast_with_string_on_untyped_instance():
     animal = Animal()
     assert not animal.type
-    animal.recast('typedmodels.feline')
-    assert animal.type == 'typedmodels.feline'
+    animal.recast('testapp.feline')
+    assert animal.type == 'testapp.feline'
     assert type(animal) is Feline
