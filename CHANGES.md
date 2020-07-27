@@ -2,6 +2,10 @@
 
 Backward-incompatible changes for released versions are listed here (for 0.5 onwards.)
 
+## (unreleased)
+
+* Fields on concrete typed models must now have `null=True`. Previously the null=True was added automatically ([#39](https://github.com/craigds/django-typed-models/issues/39))
+
 ## 0.10
 
 * Dropped Python 2 support

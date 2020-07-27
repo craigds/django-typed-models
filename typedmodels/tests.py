@@ -12,6 +12,7 @@ except ImportError:
     PYYAML_AVAILABLE = False
 
 from django.core import serializers
+from django.core.exceptions import FieldError
 
 from .models import TypedModelManager
 from testapp.models import (
@@ -338,8 +339,8 @@ def test_uniqueness_check_on_child(db):
     child2.validate_unique()
 
 
-def test_non_nullable_subclass_field_warning():
-    with pytest.warns(UserWarning):
+def test_non_nullable_subclass_field_error():
+    with pytest.raises(FieldError):
 
         class Bug(Animal):
             # should have null=True

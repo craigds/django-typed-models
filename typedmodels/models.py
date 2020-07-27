@@ -1,8 +1,7 @@
 from functools import partial
 import types
-import warnings
 
-from django.core.exceptions import FieldDoesNotExist
+from django.core.exceptions import FieldDoesNotExist, FieldError
 from django.core.serializers.python import Serializer as _PythonSerializer
 from django.core.serializers.xml_serializer import Serializer as _XmlSerializer
 from django.db import models
@@ -87,16 +86,13 @@ class TypedModelMetaclass(ModelBase):
                 #  * have a default
                 #  * be nullable
                 if not (field.many_to_many or field.null or field.has_default()):
-                    # https://github.com/craigds/django-typed-models/issues/39
-                    warnings.warn(
-                        "Field {}.{} was implicitly set to null=True. "
-                        "This will cause an error in typedmodels 0.9. "
-                        "Add null=True to the field definition to avoid this warning.".format(
+                    raise FieldError(
+                        "All fields defined on typedmodels subclasses must be nullable, "
+                        "or have a default set. "
+                        "Add null=True to the {}.{} field definition.".format(
                             classname, field_name
-                        ),
-                        UserWarning,
+                        )
                     )
-                    field.null = True
 
                 if isinstance(field, models.fields.related.RelatedField):
                     # Monkey patching field instance to make do_related_class use created class instead of base_class.
