@@ -1,18 +1,10 @@
 sudo: false
 language: python
 python:
-  - "2.7"
   - "3.6"
 env:
-  - PIP_DJANGO='Django>=1.11,<2.0'
-  - PIP_DJANGO='Django>=2.0,<2.1'
-  - PIP_DJANGO='Django>=2.1,<2.2'
-matrix:
-  exclude:
-    - env: PIP_DJANGO='Django>=2.0,<2.1'
-      python: "2.7"
-    - env: PIP_DJANGO='Django>=2.1,<2.2'
-      python: "2.7"
+  - PIP_DJANGO='Django>=2.2,<3.0'
+  - PIP_DJANGO='Django>=3.0,<3.1'
 install:
   - "pip install $PIP_DJANGO pyyaml coveralls pytest-django"
   - "pip install -e ."
