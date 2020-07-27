@@ -13,6 +13,7 @@ def read_relative_file(filename):
 setup(
     name='django-typed-models',
     description='''Sane single table model inheritance for Django''',
+    long_description=read_relative_file('README.rst'),
     version=read_relative_file('VERSION').strip(),
     author='Craig de Stigter',
     author_email='craig@destigter.nz',
