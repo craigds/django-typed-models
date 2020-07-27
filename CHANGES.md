@@ -2,6 +2,11 @@
 
 Backward-incompatible changes for released versions are listed here (for 0.5 onwards.)
 
+## 0.10
+
+* Dropped Python 2 support
+* Added support for django 2.2 and 3.0, and dropped support for <2.2.
+
 ## 0.9
 
 Removed shims for unsupported django versions (now supports 1.11+)
