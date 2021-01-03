@@ -46,6 +46,7 @@ class TypedModelMetaclass(ModelBase):
             return typed_model
 
         # look for a non-proxy base class that is a subclass of TypedModel
+        type_name = None    # Different name for the objects type
         mro = list(bases)
         while mro:
             base_class = mro.pop(-1)
@@ -126,6 +127,11 @@ class TypedModelMetaclass(ModelBase):
                 if hasattr(getattr(base_class, '_meta', None), 'app_label'):
                     Meta.app_label = base_class._meta.app_label
 
+            # Sneak the type_name parameter in without django noticing
+            if hasattr(Meta, 'type_name'):
+                type_name = getattr(Meta, 'type_name')
+                delattr(Meta, 'type_name')
+
             classdict.update(
                 {'Meta': Meta,}
             )
@@ -142,7 +148,10 @@ class TypedModelMetaclass(ModelBase):
             opts = cls._meta
 
             model_name = opts.model_name
-            typ = "%s.%s" % (opts.app_label, model_name)
+            if type_name:
+                typ = type_name
+            else:
+                typ = "%s.%s" % (opts.app_label, model_name)
             cls._typedmodels_type = typ
             cls._typedmodels_subtypes = [typ]
             if typ in base_class._typedmodels_registry:

@@ -107,6 +107,23 @@ One current use for this is connecting signals, since currently they don't fire 
         post_save.connect(on_animal_saved, sender=sender)
 
 
+Database customization
+======================
+You can change the `type` identifier which is used in the database by specifying the meta key `type_name`
+
+.. code-block:: python
+
+    class Food(TypedModel):
+        """
+        Abstract model
+        """
+
+        class Meta:
+            type_name = 'food'
+
+This will change the default type identifier to "food".
+
+
 Limitations
 ===========
 
