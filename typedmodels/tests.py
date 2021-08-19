@@ -27,6 +27,7 @@ from testapp.models import (
     Fruit,
     UniqueIdentifier,
     Child2,
+    Employee,
 )
 
 
@@ -391,3 +392,20 @@ def test_explicit_recast_with_string_on_untyped_instance():
     animal.recast("testapp.feline")
     assert animal.type == "testapp.feline"
     assert type(animal) is Feline
+
+
+def test_same_field_name_in_two_subclasses():
+    with pytest.raises(ValueError):
+
+        class Tester1(Employee):
+            name = models.CharField(max_length=255, blank=True, null=True)
+
+    with pytest.raises(ValueError):
+
+        class Tester2(Employee):
+            name = models.CharField(max_length=254, null=True)
+
+    with pytest.raises(ValueError):
+
+        class Tester3(Employee):
+            name = models.IntegerField(null=True)

@@ -110,3 +110,16 @@ class Child1(Parent):
 
 class Child2(Parent):
     pass
+
+
+class Employee(TypedModel):
+    pass
+
+
+class Developer(Employee):
+    name = models.CharField(max_length=255, null=True)
+
+
+class Manager(Employee):
+    # Adds the _exact_ same field as Developer. Shouldn't error.
+    name = models.CharField(max_length=255, null=True)
