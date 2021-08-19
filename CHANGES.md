@@ -2,9 +2,11 @@
 
 Backward-incompatible changes for released versions are listed here (for 0.5 onwards.)
 
-## (unreleased)
+## 0.11
 
+* Dropped support for djangoes older than 3.1
 * Fields on concrete typed models must now have `null=True`. Previously the null=True was added automatically ([#39](https://github.com/craigds/django-typed-models/issues/39))
+* If you defer the `type` field (via `queryset.only()` or `queryset.defer()`), typedmodels will no longer automatically cast the model instances from that queryset.
 
 ## 0.10
 

@@ -276,6 +276,31 @@ def test_queryset_defer(db):
         assert isinstance(o.yumness, float)
 
 
+def test_queryset_defer_type(db):
+    Vegetable.objects.create(name="cauliflower", color="white", yumness=1)
+    Fruit.objects.create(name="Apple", color="red", yumness=7)
+
+    qs = AbstractVegetable.objects.only("id")
+    assert len(qs) == 2
+    assert type(qs[0]) is AbstractVegetable
+    assert type(qs[1]) is AbstractVegetable
+
+    qs = Vegetable.objects.only("id")
+    assert len(qs) == 1
+    assert type(qs[0]) is Vegetable
+
+
+def test_queryset_defer_type_with_subclass_fields(db, animals):
+    # <relatedQuerySet>.delete() tends to do this .only('id') thing while collating referenced models.
+    # So it needs to work even if you think it's a weird thing to do
+    # In this case we *don't* auto-cast to anything; all returned models are Animal instances
+    # this avoids the following error:
+    #     django.core.exceptions.FieldDoesNotExist: AngryBigCat has no field named 'known_words'
+    qs = list(Animal.objects.only("id"))
+    assert len(qs) == 6
+    assert all(type(x) is Animal for x in qs)
+
+
 @pytest.mark.parametrize(
     "fmt",
     [
