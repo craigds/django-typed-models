@@ -13,7 +13,8 @@ def read_relative_file(filename):
 setup(
     name="django-typed-models",
     description="""Sane single table model inheritance for Django""",
-    long_description=read_relative_file("README.rst"),
+    long_description=read_relative_file("README.md"),
+    long_description_content_type="text/markdown",
     version=read_relative_file("VERSION").strip(),
     author="Craig de Stigter",
     author_email="craig@destigter.nz",
@@ -30,9 +31,11 @@ setup(
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Topic :: Utilities",
     ],
 )
