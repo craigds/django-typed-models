@@ -331,6 +331,11 @@ def test_generic_relation(animals):
         assert hasattr(animal, "unique_identifiers")
         assert animal.unique_identifiers.all()
 
+    Feline._meta.get_field("unique_identifiers")
+    for feline in Feline.objects.all():
+        assert hasattr(feline, "unique_identifiers")
+        assert feline.unique_identifiers.all()
+
     for uid in UniqueIdentifier.objects.all():
         cls = uid.referent.__class__
         animal = cls.objects.filter(unique_identifiers=uid)

@@ -177,8 +177,10 @@ class TypedModelMetaclass(ModelBase):
             cls._typedmodels_registry = {}
 
             # Since fields may be added by subclasses, save original fields.
-            cls._meta._typedmodels_original_fields = cls._meta.fields
-            cls._meta._typedmodels_original_many_to_many = cls._meta.many_to_many
+            cls._meta._typedmodels_original_fields = {f.name for f in cls._meta.fields}
+            cls._meta._typedmodels_original_many_to_many = {
+                f.name for f in cls._meta.many_to_many
+            }
 
             # add a get_type_classes classmethod to allow fetching of all the subclasses (useful for admin)
 
@@ -204,22 +206,19 @@ class TypedModelMetaclass(ModelBase):
         return cls
 
     @staticmethod
-    def _model_has_field(cls, base_class, f, m2m=None):
-        if (
-            m2m in (True, None)
-            and f in base_class._meta._typedmodels_original_many_to_many
-        ):
+    def _model_has_field(cls, base_class, field_name):
+        if field_name in base_class._meta._typedmodels_original_many_to_many:
             return True
-        if m2m in (False, None) and f in base_class._meta._typedmodels_original_fields:
+        if field_name in base_class._meta._typedmodels_original_fields:
             return True
-        if f in base_class._meta.private_fields:
+        if any(f.name == field_name for f in base_class._meta.private_fields):
             return True
         for ancestor in cls.mro():
             if issubclass(ancestor, base_class) and ancestor != base_class:
-                if f in list(ancestor._meta.declared_fields.values()):
+                if field_name in ancestor._meta.declared_fields.keys():
                     return True
 
-        if m2m in (True, None) and f.name in cls._meta.fields_map:
+        if field_name in cls._meta.fields_map:
             # Crazy case where a reverse M2M from another typedmodels proxy points to this proxy
             # (this is an m2m reverse field)
             return True
@@ -258,7 +257,7 @@ class TypedModelMetaclass(ModelBase):
                 fields = [
                     f
                     for f in fields
-                    if TypedModelMetaclass._model_has_field(cls, base_class, f)
+                    if TypedModelMetaclass._model_has_field(cls, base_class, f.name)
                 ]
                 fields = make_immutable_fields_list("get_fields()", fields)
                 self._get_fields_cache[cache_key] = fields
