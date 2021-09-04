@@ -1,10 +1,12 @@
 from functools import partial
 import types
 
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import FieldDoesNotExist, FieldError
 from django.core.serializers.python import Serializer as _PythonSerializer
 from django.core.serializers.xml_serializer import Serializer as _XmlSerializer
 from django.db import models
+from django.db.models import Q
 from django.db.models.base import ModelBase, DEFERRED
 from django.db.models.fields import Field
 from django.db.models.options import make_immutable_fields_list
@@ -19,15 +21,15 @@ class TypedModelManager(models.Manager):
     def _filter_by_type(self, qs):
         if hasattr(self.model, "_typedmodels_type"):
             if len(self.model._typedmodels_subtypes) > 1:
-                qs = qs.filter(type__in=self.model._typedmodels_subtypes)
+                qs = qs.filter(dtm_type__in=self.model._typedmodels_subtypes)
             else:
-                qs = qs.filter(type=self.model._typedmodels_type)
+                qs = qs.filter(dtm_type=self.model._typedmodels_type)
         return qs
 
 
 class TypedModelMetaclass(ModelBase):
     """
-    This metaclass enables a model for auto-downcasting using a ``type`` attribute.
+    This metaclass enables a model for auto-downcasting using a ``dtm_type`` attribute.
     """
 
     def __new__(meta, classname, bases, classdict):
@@ -115,7 +117,7 @@ class TypedModelMetaclass(ModelBase):
                         and remote_field.model.base_class
                     ):
                         remote_field.limit_choices_to[
-                            "type__in"
+                            "dtm_type__in"
                         ] = remote_field.model._typedmodels_subtypes
 
                 # Check if a field with this name has already been added to class
@@ -160,20 +162,18 @@ class TypedModelMetaclass(ModelBase):
             opts = cls._meta
 
             model_name = opts.model_name
-            typ = "%s.%s" % (opts.app_label, model_name)
+            typ = ContentType.objects.get(app_label=opts.app_label, model=model_name)
             cls._typedmodels_type = typ
             cls._typedmodels_subtypes = [typ]
-            if typ in base_class._typedmodels_registry:
+            if typ.id in base_class._typedmodels_registry:
                 raise ValueError(
                     "Can't register type %r to %r (already registered to %r)"
-                    % (typ, classname, base_class._typedmodels_registry[typ].__name__)
+                    % (typ, classname, base_class._typedmodels_registry[typ.id].__name__)
                 )
-            base_class._typedmodels_registry[typ] = cls
+            base_class._typedmodels_registry[typ.id] = cls
 
-            type_name = getattr(cls._meta, "verbose_name", cls.__name__)
-            type_field = base_class._meta.get_field("type")
-            choices = tuple(list(type_field.choices) + [(typ, type_name)])
-            type_field.choices = choices
+            type_field = base_class._meta.get_field("dtm_type")
+            type_field.limit_choices_to = getattr(type_field, 'limit_choices_to', Q()) | Q(app_label=typ.app_label, model=typ.model)
 
             cls._meta.declared_fields = declared_fields
 
@@ -205,7 +205,7 @@ class TypedModelMetaclass(ModelBase):
                     return list(cls._typedmodels_registry.values())
                 else:
                     return [
-                        cls._typedmodels_registry[k]
+                        cls._typedmodels_registry[k.id]
                         for k in subcls._typedmodels_subtypes
                     ]
 
@@ -213,7 +213,7 @@ class TypedModelMetaclass(ModelBase):
 
             def get_types(subcls):
                 if subcls is cls:
-                    return list(cls._typedmodels_registry.keys())
+                    return ContentType.objects.get(id__in=list(cls._typedmodels_registry.keys()))
                 else:
                     return subcls._typedmodels_subtypes[:]
 
@@ -288,7 +288,7 @@ class TypedModelMetaclass(ModelBase):
 class TypedModel(models.Model, metaclass=TypedModelMetaclass):
     '''
     This class contains the functionality required to auto-downcast a model based
-    on its ``type`` attribute.
+    on its ``dtm_type`` attribute.
 
     To use, simply subclass TypedModel for your base type, and then subclass
     that for your concrete types.
@@ -321,8 +321,8 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
 
     objects = TypedModelManager()
 
-    type = models.CharField(
-        choices=(), max_length=255, null=False, blank=False, db_index=True
+    dtm_type = models.ForeignKey(
+        ContentType, null=True, blank=False, db_index=True, on_delete=models.PROTECT
     )
 
     # Class variable indicating if model should be automatically recasted after initialization
@@ -335,14 +335,14 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
     def from_db(cls, db, field_names, values):
         # Called when django instantiates a model class from a queryset.
         _typedmodels_do_recast = True
-        if "type" not in field_names:
+        if "dtm_type_id" not in field_names:
             # LIMITATION:
             # `type` was deferred in the queryset.
             # So we can't cast this model without generating another query.
             # That'd be *really* bad for performance.
             # Most likely, this would have happened in `obj.fieldname`, where `fieldname` is deferred.
             # This will populate a queryset with .only('fieldname'),
-            # leading to this situation where 'type' is deferred.
+            # leading to this situation where 'dtm_type' is deferred.
             # Django will then copy the fieldname from those model instances onto the original obj.
             # In this case we don't really need a typed subclass, so we choose to just not recast in
             # this situation.
@@ -351,7 +351,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
             # MyModel.objects.only('myfield'). If you do that, we will also not recast.
             #
             # If you want you can recast manually (call obj.recast() on each object in your
-            # queryset) - but by far a better solution would be to not defer the `type` field
+            # queryset) - but by far a better solution would be to not defer the `dtm_type` field
             # to start with.
             _typedmodels_do_recast = False
 
@@ -400,7 +400,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         else:
             raise ValueError("No suitable base class found to recast!")
 
-        if not self.type:
+        if not self.dtm_type:
             if not hasattr(self, "_typedmodels_type"):
                 # This is an instance of an untyped model
                 if typ is None:
@@ -410,21 +410,21 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
                     # Instead, we raise an error when the object is saved.
                     return
             else:
-                self.type = self._typedmodels_type
+                self.dtm_type = self._typedmodels_type
 
         if typ is None:
-            typ = self.type
+            typ = self.dtm_type
         else:
             if isinstance(typ, type) and issubclass(typ, base):
                 model_name = typ._meta.model_name
-                typ = "%s.%s" % (typ._meta.app_label, model_name)
+                typ = ContentType.objects.get(app_label=typ._meta.app_label, model=model_name)
 
         try:
-            correct_cls = base._typedmodels_registry[typ]
+            correct_cls = base._typedmodels_registry[typ.id]
         except KeyError:
             raise ValueError("Invalid %s identifier: %r" % (base.__name__, typ))
 
-        self.type = typ
+        self.dtm_type = typ
 
         current_cls = self.__class__
 

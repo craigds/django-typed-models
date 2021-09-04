@@ -6,11 +6,11 @@ class TypedModelAdmin(admin.ModelAdmin):
         fields = super().get_fields(request, obj)
         # we remove the type field from the admin of subclasses.
         if TypedModel not in self.model.__bases__:
-            fields.remove(self.model._meta.get_field('type').name)
+            fields.remove(self.model._meta.get_field('dtm_type').name)
         return fields
 
     def save_model(self, request, obj, form, change):
         if getattr(obj, '_typedmodels_type', None) is None:
             # new instances don't have the type attribute
-            obj._typedmodels_type = form.cleaned_data['type']
+            obj._typedmodels_type = form.cleaned_data['dtm_type']
         obj.save()
