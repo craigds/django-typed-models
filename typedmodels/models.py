@@ -159,10 +159,7 @@ class TypedModelMetaclass(ModelBase):
         cls._meta.fields_from_subclasses = {}
 
         if base_class:
-            opts = cls._meta
-
-            model_name = opts.model_name
-            typ = ContentType.objects.get(app_label=opts.app_label, model=model_name)
+            typ = ContentType.objects.get_for_model(cls, for_concrete_model=False)
             cls._typedmodels_type = typ
             cls._typedmodels_subtypes = [typ]
             if typ.id in base_class._typedmodels_registry:
@@ -213,7 +210,7 @@ class TypedModelMetaclass(ModelBase):
 
             def get_types(subcls):
                 if subcls is cls:
-                    return ContentType.objects.get(id__in=list(cls._typedmodels_registry.keys()))
+                    return [ContentType.objects.get_for_id(pk) for pk in cls._typedmodels_registry.keys()]
                 else:
                     return subcls._typedmodels_subtypes[:]
 
@@ -322,7 +319,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
     objects = TypedModelManager()
 
     dtm_type = models.ForeignKey(
-        ContentType, null=True, blank=False, db_index=True, on_delete=models.PROTECT
+        ContentType, null=False, blank=False, db_index=True, on_delete=models.PROTECT
     )
 
     # Class variable indicating if model should be automatically recasted after initialization
@@ -337,7 +334,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         _typedmodels_do_recast = True
         if "dtm_type_id" not in field_names:
             # LIMITATION:
-            # `type` was deferred in the queryset.
+            # `dtm_type` was deferred in the queryset.
             # So we can't cast this model without generating another query.
             # That'd be *really* bad for performance.
             # Most likely, this would have happened in `obj.fieldname`, where `fieldname` is deferred.
@@ -400,7 +397,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         else:
             raise ValueError("No suitable base class found to recast!")
 
-        if not self.dtm_type:
+        if self.dtm_type_id is None:
             if not hasattr(self, "_typedmodels_type"):
                 # This is an instance of an untyped model
                 if typ is None:
@@ -413,11 +410,11 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
                 self.dtm_type = self._typedmodels_type
 
         if typ is None:
-            typ = self.dtm_type
+            typ = ContentType.objects.get_for_id(self.dtm_type_id)
         else:
             if isinstance(typ, type) and issubclass(typ, base):
                 model_name = typ._meta.model_name
-                typ = ContentType.objects.get(app_label=typ._meta.app_label, model=model_name)
+                typ = ContentType.objects.get_for_model(typ, for_concrete_model=False)
 
         try:
             correct_cls = base._typedmodels_registry[typ.id]
