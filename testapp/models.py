@@ -17,7 +17,7 @@ class UniqueIdentifier(models.Model):
 
 class UniqueIdentifierMixin(models.Model):
     unique_identifiers = GenericRelation(
-        UniqueIdentifier, related_query_name='referents'
+        UniqueIdentifier, related_query_name="referents"
     )
 
     class Meta:
@@ -100,12 +100,23 @@ class Vegetable(AbstractVegetable):
     pass
 
 
-class Parent(TypedModel):
+class SurpriseAbstractModel(TypedModel):
+    """
+    This class *isn't* the typed base, it's a random abstract model.
+    The presence of this model tests
+    https://github.com/craigds/django-typed-models/issues/61
+    """
+
+    class Meta:
+        abstract = True
+
+
+class Parent(SurpriseAbstractModel):
     a = models.CharField(max_length=1)
 
 
 class Child1(Parent):
-    b = models.OneToOneField('self', null=True, on_delete=models.CASCADE)
+    b = models.OneToOneField("self", null=True, on_delete=models.CASCADE)
 
 
 class Child2(Parent):
