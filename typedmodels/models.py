@@ -50,7 +50,7 @@ class TypedModelMetaclass(ModelBase):
         while mro:
             base_class = mro.pop(-1)
             if issubclass(base_class, TypedModel) and base_class is not TypedModel:
-                if base_class._meta.proxy:
+                if base_class._meta.proxy or base_class._meta.abstract:
                     # continue up the mro looking for non-proxy base classes
                     mro.extend(base_class.__bases__)
                 else:
@@ -188,7 +188,7 @@ class TypedModelMetaclass(ModelBase):
                     superclass._typedmodels_subtypes.append(typ)
 
             meta._patch_fields_cache(cls, base_class)
-        else:
+        elif not cls._meta.abstract:
             # this is the base class
             cls._typedmodels_registry = {}
 
