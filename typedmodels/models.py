@@ -1,3 +1,4 @@
+import inspect
 from functools import partial
 import types
 
@@ -437,8 +438,15 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         return super(TypedModel, self).save(*args, **kwargs)
 
     def _get_unique_checks(self, exclude=None, include_meta_constraints=False):
+        unique_check_kwargs = {"exclude": exclude}
+        parent_unique_checks_args = inspect.getargspec(super(TypedModel, self)._get_unique_checks)
+
+        if "include_meta_constraints" in parent_unique_checks_args[0]:
+            # django 4.0 does not have this argument but django 4.1 does
+            unique_check_kwargs["include_meta_constraints"] = include_meta_constraints
+
         unique_checks, date_checks = super(TypedModel, self)._get_unique_checks(
-            exclude=exclude, include_meta_constraints=include_meta_constraints,
+            **unique_check_kwargs
         )
 
         for i, (model_class, field_names) in reversed(list(enumerate(unique_checks))):
