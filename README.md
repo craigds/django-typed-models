@@ -132,3 +132,5 @@ class FelineAdmin(TypedModelAdmin):
 
 * Django 3.1+
 * Python 3.6+
+
+Django 4.1 is now supported (unique constraints defined on Meta are not tested)
