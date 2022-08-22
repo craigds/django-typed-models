@@ -436,9 +436,9 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
             raise RuntimeError("Untyped %s cannot be saved." % self.__class__.__name__)
         return super(TypedModel, self).save(*args, **kwargs)
 
-    def _get_unique_checks(self, exclude=None):
+    def _get_unique_checks(self, exclude=None, include_meta_constraints=False):
         unique_checks, date_checks = super(TypedModel, self)._get_unique_checks(
-            exclude=exclude
+            exclude=exclude, include_meta_constraints=include_meta_constraints,
         )
 
         for i, (model_class, field_names) in reversed(list(enumerate(unique_checks))):
