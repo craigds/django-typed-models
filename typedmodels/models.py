@@ -437,16 +437,9 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
             raise RuntimeError("Untyped %s cannot be saved." % self.__class__.__name__)
         return super(TypedModel, self).save(*args, **kwargs)
 
-    def _get_unique_checks(self, exclude=None, include_meta_constraints=False):
-        unique_check_kwargs = {"exclude": exclude}
-        parent_unique_checks_args = inspect.getargspec(super(TypedModel, self)._get_unique_checks)
-
-        if "include_meta_constraints" in parent_unique_checks_args[0]:
-            # django 4.0 does not have this argument but django 4.1 does
-            unique_check_kwargs["include_meta_constraints"] = include_meta_constraints
-
+    def _get_unique_checks(self, exclude=None, **kwargs):
         unique_checks, date_checks = super(TypedModel, self)._get_unique_checks(
-            **unique_check_kwargs
+            exclude=exclude, **kwargs
         )
 
         for i, (model_class, field_names) in reversed(list(enumerate(unique_checks))):
