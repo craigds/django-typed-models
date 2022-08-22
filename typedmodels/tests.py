@@ -370,6 +370,20 @@ def test_uniqueness_check_on_child(db):
     child2.validate_unique()
 
 
+def test_uniqueness_check_include_meta_constraints(db):
+    """Django 4.1 introduces a new required kwarg
+    django/forms/models.py in validate_unique at line 809
+    for form in valid_forms:
+    exclude = form._get_validation_exclusions()
+    unique_checks, date_checks = form.instance._get_unique_checks(
+        exclude=exclude,
+        include_meta_constraints=True,
+    )
+    """
+    child2 = Child2.objects.create(a="a")
+    child2._get_unique_checks()
+
+
 def test_non_nullable_subclass_field_error():
     with pytest.raises(FieldError):
 
