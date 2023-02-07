@@ -34,7 +34,7 @@ class Migration(migrations.Migration):
             name='Animal',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('type', models.CharField(choices=[('testapp.canine', 'canine'), ('testapp.feline', 'feline'), ('testapp.bigcat', 'big cat'), ('testapp.angrybigcat', 'angry big cat'), ('testapp.parrot', 'parrot')], db_index=True, max_length=255)),
+                ('type', models.CharField(choices=[('testapp.angrybigcat', 'angry big cat'), ('testapp.bigcat', 'big cat'), ('testapp.canine', 'canine'), ('testapp.feline', 'feline'), ('testapp.parrot', 'parrot')], db_index=True, max_length=255)),
                 ('name', models.CharField(max_length=255)),
                 ('mice_eaten', models.IntegerField(default=0)),
                 ('known_words', models.IntegerField(null=True)),
