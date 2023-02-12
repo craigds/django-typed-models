@@ -174,7 +174,7 @@ class TypedModelMetaclass(ModelBase):
             type_name = getattr(cls._meta, "verbose_name", cls.__name__)
             type_field = base_class._meta.get_field("type")
             choices = tuple(list(type_field.choices) + [(typ, type_name)])
-            type_field.choices = choices
+            type_field.choices = sorted(choices)
 
             cls._meta.declared_fields = declared_fields
 
