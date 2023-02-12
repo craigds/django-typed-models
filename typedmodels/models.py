@@ -68,7 +68,7 @@ class TypedModelMetaclass(ModelBase):
 
             Meta = classdict.get("Meta", Meta)
             if getattr(Meta, "proxy", False):
-                # If user has specified proxy=True explicitly, we assume that he wants it to be treated like ordinary
+                # If user has specified proxy=True explicitly, we assume that they want it to be treated like ordinary
                 # proxy class, without TypedModel logic.
                 return super(TypedModelMetaclass, meta).__new__(
                     meta, classname, bases, classdict
