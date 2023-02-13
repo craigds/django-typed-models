@@ -121,13 +121,13 @@ def test_get_type_classes():
 
 def test_type_choices():
     type_choices = Animal._meta.get_field("type").choices
-    assert type_choices == (
+    assert type_choices == [
         ("testapp.angrybigcat", "angry big cat"),
         ("testapp.bigcat", "big cat"),
         ("testapp.canine", "canine"),
         ("testapp.feline", "feline"),
         ("testapp.parrot", "parrot"),
-    )
+    ]
     assert {cls for cls, _ in type_choices} == set(Animal.get_types())
 
 
