@@ -195,18 +195,32 @@ def test_recast_auto(animals):
     assert type(cat) == BigCat
 
 
-def test_recast_string(animals):
+def test_recast_to_subclass_string(animals):
     cat = Feline.objects.get(name="kitteh")
     cat.recast("testapp.bigcat")
     assert cat.type == "testapp.bigcat"
     assert type(cat) == BigCat
 
 
-def test_recast_modelclass(animals):
+def test_recast_to_subclass_modelclass(animals):
     cat = Feline.objects.get(name="kitteh")
     cat.recast(BigCat)
     assert cat.type == "testapp.bigcat"
     assert type(cat) == BigCat
+
+
+def test_recast_string(animals):
+    cat = Feline.objects.get(name="kitteh")
+    cat.recast("testapp.canine")
+    assert cat.type == "testapp.canine"
+    assert type(cat) == Canine
+
+
+def test_recast_modelclass(animals):
+    cat = Feline.objects.get(name="kitteh")
+    cat.recast(Canine)
+    assert cat.type == "testapp.canine"
+    assert type(cat) == Canine
 
 
 def test_recast_fail(animals):

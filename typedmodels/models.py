@@ -395,7 +395,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
             self.recast()
 
     def recast(self, typ=None):
-        for base in self.__class__.mro():
+        for base in reversed(self.__class__.mro()):
             if issubclass(base, TypedModel) and hasattr(base, "_typedmodels_registry"):
                 break
         else:
