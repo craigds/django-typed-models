@@ -2,6 +2,15 @@
 
 Backward-incompatible changes for released versions are listed here (for 0.5 onwards.)
 
+## 0.13
+
+* Dropped support for Django 3.1.
+* Some apps using typedmodels may generate new migrations, due to [#68](https://github.com/craigds/django-typed-models/pull/68) - these are harmless and don't actually change anything in your database.
+
+## 0.12
+
+No backward-incompatible changes. Added support for Django 4.x
+
 ## 0.11
 
 * Dropped support for djangoes older than 3.1
