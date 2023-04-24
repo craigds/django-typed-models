@@ -1,6 +1,7 @@
 build
 .pytest_cache
 .cache
+/.tox
 *.pyc
 *.pyo
 dist
