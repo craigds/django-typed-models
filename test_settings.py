@@ -1,7 +1,7 @@
 INSTALLED_APPS = (
     "typedmodels",
     "django.contrib.contenttypes",
-    "second_testapp",  # purposefully before to test related models with lazy loading
+    "second_testapp",  # purposefully before testapp to test related models with lazy loading
     "testapp",
 )
 MIDDLEWARE_CLASSES = ()
