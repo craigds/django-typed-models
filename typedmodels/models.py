@@ -109,7 +109,6 @@ class TypedModelMetaclass(ModelBase):
                         cls._meta.model_name = base_class_name.lower()
 
                     field.do_related_class = types.MethodType(do_related_class, field)
-                if isinstance(field, models.fields.related.RelatedField):
                     remote_field = field.remote_field
                     if (
                         isinstance(remote_field.model, TypedModel)

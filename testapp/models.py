@@ -143,4 +143,3 @@ class Product(models.Model):
 class Order(models.Model):
     external_id = models.CharField(max_length=255, default="123")
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="orders")
-    customer = models.ForeignKey("Employee", on_delete=models.CASCADE, related_name="orders")

@@ -5,7 +5,6 @@ from typedmodels.models import TypedModel
 
 class BaseReview(TypedModel):
     rating = models.IntegerField()
-    customer = models.ForeignKey("testapp.Employee", on_delete=models.CASCADE, related_name="reviews", null=True)
 
 
 class OrderReview(BaseReview):

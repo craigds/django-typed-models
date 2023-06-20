@@ -449,20 +449,17 @@ def test_same_field_name_in_two_subclasses():
 
 
 def test_related_name_is_preserved_for_foreign_keys(db):
-    customer = Manager.objects.create()
     product = Product.objects.create(name="test")
-    order = Order.objects.create(product=product, customer=customer)
+    order = Order.objects.create(product=product)
 
     order_review = OrderReview.objects.create(
         order=order,
         product=product,
         rating=5,
-        customer=customer,
     )
     assert order_review.order == order
     assert order_review.product == product
 
     assert order.order_review == order_review
     assert product.reviews.first() == order_review
-    assert customer.reviews.first() == order_review
 
