@@ -449,6 +449,10 @@ def test_same_field_name_in_two_subclasses():
 
 
 def test_related_name_is_preserved_for_foreign_keys(db):
+    """Regression test for the following scenario:
+    A subclass of a typed model has foreign key to two models in a different app, while they are also related
+    to each other.
+    """
     product = Product.objects.create(name="test")
     order = Order.objects.create(product=product)
 

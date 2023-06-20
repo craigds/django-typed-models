@@ -1,6 +1,4 @@
-import inspect
 from functools import partial
-import types
 
 from django.core.exceptions import FieldDoesNotExist, FieldError
 from django.core.serializers.python import Serializer as _PythonSerializer
@@ -8,6 +6,7 @@ from django.core.serializers.xml_serializer import Serializer as _XmlSerializer
 from django.db import models
 from django.db.models.base import ModelBase, DEFERRED
 from django.db.models.fields import Field
+from django.db.models.fields.related import RelatedField
 from django.db.models.options import make_immutable_fields_list
 from django.utils.encoding import smart_str
 
@@ -95,20 +94,12 @@ class TypedModelMetaclass(ModelBase):
                         )
                     )
 
-                if isinstance(field, models.fields.related.RelatedField):
+                if isinstance(field, RelatedField):
                     # Monkey patching field instance to make do_related_class use created class instead of base_class.
                     # Actually that class doesn't exist yet, so we just monkey patch base_class for a while,
                     # changing _meta.model_name, so accessor names are generated properly.
                     # We'll do more stuff when the class is created.
-                    old_do_related_class = field.do_related_class
-
-                    def do_related_class(self, other, cls):
-                        base_class_name = base_class.__name__
-                        cls._meta.model_name = classname.lower()
-                        old_do_related_class(other, cls)
-                        cls._meta.model_name = base_class_name.lower()
-
-                    field.do_related_class = types.MethodType(do_related_class, field)
+                    field.do_related_class = _get_related_class_function(base_class, classname, field)
                     remote_field = field.remote_field
                     if (
                         isinstance(remote_field.model, TypedModel)
@@ -450,6 +441,24 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
                     unique_checks.pop(i)
                     break
         return unique_checks, date_checks
+
+
+def _get_related_class_function(base_class, classname, field):
+    """
+    Returns a function that can be used to replace a RelatedField's
+    do_related_class method. This function is used to monkey patch
+    RelatedFields on subclasses of TypedModel to use the created class
+    instead of the base class.
+    """
+    old_do_related_class = field.do_related_class
+
+    def do_related_class(self, other, cls):
+        base_class_name = base_class.__name__
+        cls._meta.model_name = classname.lower()
+        old_do_related_class(other, cls)
+        cls._meta.model_name = base_class_name.lower()
+
+    return partial(do_related_class, field)
 
 
 # Monkey patching Python and XML serializers in Django to use model name from base class.
