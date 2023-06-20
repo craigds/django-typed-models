@@ -29,7 +29,9 @@ from testapp.models import (
     Fruit,
     UniqueIdentifier,
     Child2,
-    Employee, Product, Order, Manager,
+    Employee,
+    Product,
+    Order,
 )
 
 
