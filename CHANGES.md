@@ -2,7 +2,12 @@
 
 Backward-incompatible changes for released versions are listed here (for 0.5 onwards.)
 
-* Added support for Django 4.2.
+* Added support for Django 4.2 and 5.0.
+
+* Added support for Python 3.12.
+
+* Dropped the `VERSION` and `__version__` attributes. To check the version of the package, use `importlib.metadata.version("django-typed-models")` ([docs](https://docs.python.org/3/library/importlib.metadata.html#distribution-versions) /
+  [backport](https://pypi.org/project/importlib-metadata/)).
 
 ## 0.13
 
