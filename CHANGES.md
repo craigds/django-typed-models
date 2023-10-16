@@ -2,6 +2,8 @@
 
 Backward-incompatible changes for released versions are listed here (for 0.5 onwards.)
 
+* Added support for Django 4.2.
+
 ## 0.13
 
 * Dropped support for Django 3.1.
