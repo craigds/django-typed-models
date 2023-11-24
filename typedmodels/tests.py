@@ -3,6 +3,8 @@ from django.db import models
 
 import pytest
 
+from second_testapp.models import OrderReview
+
 try:
     import yaml
 
@@ -28,6 +30,8 @@ from testapp.models import (
     UniqueIdentifier,
     Child2,
     Employee,
+    Product,
+    Order,
 )
 
 
@@ -444,3 +448,24 @@ def test_same_field_name_in_two_subclasses():
 
         class Tester3(Employee):
             name = models.IntegerField(null=True)
+
+
+def test_related_name_is_preserved_for_foreign_keys(db):
+    """Regression test for the following scenario:
+    A subclass of a typed model has foreign key to two models in a different app, while they are also related
+    to each other.
+    """
+    product = Product.objects.create(name="test")
+    order = Order.objects.create(product=product)
+
+    order_review = OrderReview.objects.create(
+        order=order,
+        product=product,
+        rating=5,
+    )
+    assert order_review.order == order
+    assert order_review.product == product
+
+    assert order.order_review == order_review
+    assert product.reviews.first() == order_review
+
