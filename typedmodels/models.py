@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING, Optional
+
 from functools import partial
 import types
 
@@ -11,13 +13,18 @@ from django.db.models.fields import Field
 from django.db.models.options import make_immutable_fields_list
 from django.utils.encoding import smart_str
 
+if TYPE_CHECKING:
+    from django.db.models import QuerySet
+    
 
 class TypedModelManager(models.Manager):
+    model: "type[TypedModel]"
+    
     def get_queryset(self):
         qs = super(TypedModelManager, self).get_queryset()
         return self._filter_by_type(qs)
 
-    def _filter_by_type(self, qs):
+    def _filter_by_type(self, qs: "QuerySet[TypedModel]"):
         if hasattr(self.model, "_typedmodels_type"):
             if len(self.model._typedmodels_subtypes) > 1:
                 qs = qs.filter(type__in=self.model._typedmodels_subtypes)
@@ -358,6 +365,8 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
             def say_something(self):
                 return "meoww"
     '''
+    _typedmodels_type: Optional[str]
+    _typedmodels_subtypes: Optional[list[str]]
 
     objects = TypedModelManager()
 
