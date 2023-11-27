@@ -44,4 +44,5 @@ setup(
         "Programming Language :: Python :: 3.12",
         "Topic :: Utilities",
     ],
+    package_data={"typedmodels": ["py.typed"]},
 )
