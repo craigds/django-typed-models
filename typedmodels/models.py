@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, TypeVar, Generic
 
 from functools import partial
 import types
@@ -16,11 +16,14 @@ from django.utils.encoding import smart_str
 if TYPE_CHECKING:
     from django.db.models import QuerySet
     
-
-class TypedModelManager(models.Manager):
-    model: "type[TypedModel]"
     
-    def get_queryset(self):
+TypedModelT = TypeVar("TypedModelT", bound="TypedModel")
+
+
+class TypedModelManager(models.Manager, Generic[TypedModelT]):
+    model: "type[TypedModelT]"
+    
+    def get_queryset(self) -> "QuerySet[TypedModel]":
         qs = super(TypedModelManager, self).get_queryset()
         return self._filter_by_type(qs)
 
@@ -415,7 +418,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         new._state.db = db
         return new
 
-    def __init__(self, *args, _typedmodels_do_recast=None, **kwargs):
+    def __init__(self, *args, _typedmodels_do_recast=None, **kwargs) -> None:
         # Calling __init__ on base class because some functions (e.g. save()) need access to field values from base
         # class.
 
@@ -442,7 +445,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         if _typedmodels_do_recast:
             self.recast()
 
-    def recast(self, typ=None):
+    def recast(self, typ: "Optional[type[TypedModel]]" = None) -> None:
         for base in reversed(self.__class__.mro()):
             if issubclass(base, TypedModel) and hasattr(base, "_typedmodels_registry"):
                 break
@@ -480,10 +483,14 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         if current_cls != correct_cls:
             self.__class__ = correct_cls
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
+        self.presave(*args, **kwargs)
+        return super(TypedModel, self).save(*args, **kwargs)
+    
+    def presave(self, *args, **kwargs) -> None:
+        """Perform checks before saving the model."""
         if not getattr(self, "_typedmodels_type", None):
             raise RuntimeError("Untyped %s cannot be saved." % self.__class__.__name__)
-        return super(TypedModel, self).save(*args, **kwargs)
 
     def _get_unique_checks(self, exclude=None, **kwargs):
         unique_checks, date_checks = super(TypedModel, self)._get_unique_checks(
@@ -507,7 +514,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
 _python_serializer_get_dump_object = _PythonSerializer.get_dump_object
 
 
-def _get_dump_object(self, obj):
+def _get_dump_object(self, obj) -> dict:
     if isinstance(obj, TypedModel):
         return {
             "pk": smart_str(obj._get_pk_val(), strings_only=True),
@@ -523,7 +530,7 @@ _PythonSerializer.get_dump_object = _get_dump_object
 _xml_serializer_start_object = _XmlSerializer.start_object
 
 
-def _start_object(self, obj):
+def _start_object(self, obj) -> None:
     if isinstance(obj, TypedModel):
         self.indent(1)
         obj_pk = obj._get_pk_val()
