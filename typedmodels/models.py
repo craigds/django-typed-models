@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, TypeVar, Generic
+from typing import TYPE_CHECKING, Optional, Type, TypeVar, Generic
 
 from functools import partial
 import types
@@ -14,14 +14,14 @@ from django.db.models.options import make_immutable_fields_list
 from django.utils.encoding import smart_str
 
 if TYPE_CHECKING:
-    from django.db.models import QuerySet
+    from django.db.models import Model, QuerySet
     
     
 TypedModelT = TypeVar("TypedModelT", bound="TypedModel")
 
 
 class TypedModelManager(models.Manager, Generic[TypedModelT]):
-    model: "type[TypedModelT]"
+    model: "Type[TypedModelT]"
     
     def get_queryset(self) -> "QuerySet[TypedModel]":
         qs = super(TypedModelManager, self).get_queryset()
@@ -211,7 +211,7 @@ class TypedModelMetaclass(ModelBase):
 
             # add a get_type_classes classmethod to allow fetching of all the subclasses (useful for admin)
 
-            def get_type_classes(subcls):
+            def get_type_classes(subcls: "Type[TypedModelT]"):
                 if subcls is cls:
                     return list(cls._typedmodels_registry.values())
                 else:
@@ -222,7 +222,7 @@ class TypedModelMetaclass(ModelBase):
 
             cls.get_type_classes = classmethod(get_type_classes)
 
-            def get_types(subcls):
+            def get_types(subcls: "Type[TypedModelT]"):
                 if subcls is cls:
                     return list(cls._typedmodels_registry.keys())
                 else:
@@ -233,7 +233,7 @@ class TypedModelMetaclass(ModelBase):
         return cls
 
     @staticmethod
-    def _model_has_field(cls, base_class, field_name):
+    def _model_has_field(cls, base_class: "Type[TypedModelT]", field_name: str):
         if field_name in base_class._meta._typedmodels_original_many_to_many:
             return True
         if field_name in base_class._meta._typedmodels_original_fields:
@@ -252,7 +252,7 @@ class TypedModelMetaclass(ModelBase):
         return False
 
     @staticmethod
-    def _patch_fields_cache(cls, base_class):
+    def _patch_fields_cache(cls, base_class: "Type[TypedModelT]"):
         orig_get_fields = cls._meta._get_fields
 
         if django.VERSION >= (5, 0):
@@ -445,7 +445,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         if _typedmodels_do_recast:
             self.recast()
 
-    def recast(self, typ: "Optional[type[TypedModel]]" = None) -> None:
+    def recast(self, typ: "Optional[Type[TypedModel]]" = None) -> None:
         for base in reversed(self.__class__.mro()):
             if issubclass(base, TypedModel) and hasattr(base, "_typedmodels_registry"):
                 break
@@ -514,7 +514,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
 _python_serializer_get_dump_object = _PythonSerializer.get_dump_object
 
 
-def _get_dump_object(self, obj) -> dict:
+def _get_dump_object(self, obj: "Model") -> dict:
     if isinstance(obj, TypedModel):
         return {
             "pk": smart_str(obj._get_pk_val(), strings_only=True),
@@ -530,7 +530,7 @@ _PythonSerializer.get_dump_object = _get_dump_object
 _xml_serializer_start_object = _XmlSerializer.start_object
 
 
-def _start_object(self, obj) -> None:
+def _start_object(self, obj: "Model") -> None:
     if isinstance(obj, TypedModel):
         self.indent(1)
         obj_pk = obj._get_pk_val()
