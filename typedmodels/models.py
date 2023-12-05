@@ -23,11 +23,11 @@ TypedModelT = TypeVar("TypedModelT", bound="TypedModel")
 class TypedModelManager(models.Manager, Generic[TypedModelT]):
     model: "Type[TypedModelT]"
     
-    def get_queryset(self) -> "QuerySet[TypedModel]":
+    def get_queryset(self) -> "QuerySet[TypedModelT]":
         qs = super(TypedModelManager, self).get_queryset()
         return self._filter_by_type(qs)
 
-    def _filter_by_type(self, qs: "QuerySet[TypedModel]"):
+    def _filter_by_type(self, qs: "QuerySet[TypedModelT]"):
         if hasattr(self.model, "_typedmodels_type"):
             if len(self.model._typedmodels_subtypes) > 1:
                 qs = qs.filter(type__in=self.model._typedmodels_subtypes)
