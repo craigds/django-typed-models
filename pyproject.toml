@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "django-typed-models"
+description = "Sane single table model inheritance for Django"
+readme = "README.md"
+dynamic = ["version"]
+authors = [
+    { name = "Craig de Stigter", email = "craig@destigter.nz" },
+]
+license = "BSD-3-Clause"
+license-files = { paths = ["LICENSE.txt"] }
+classifiers = [
+    "Environment :: Web Environment", 
+    "Framework :: Django",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.0",
+    "Framework :: Django :: 5.1",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "django_stubs_ext",
+]
+requires-python = ">=3.8"
+
+[project.urls]
+Homepage = "http://github.com/craigds/django-typed-models"
+
+[tool.hatch.version]
+path = "typedmodels/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["typedmodels"]
