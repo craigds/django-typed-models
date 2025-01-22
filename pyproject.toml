@@ -9,7 +9,7 @@ readme = "README.md"
 dynamic = ["version"]
 authors = [{ name = "Craig de Stigter", email = "craig@destigter.nz" }]
 license = "BSD-3-Clause"
-license-files = { paths = ["LICENSE.txt"] }
+license-files = ["LICENSE.txt"]
 classifiers = [
     "Environment :: Web Environment",
     "Framework :: Django",
@@ -29,7 +29,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Utilities",
 ]
-dependencies = ["django_stubs_ext"]
+dependencies = ["django_stubs_ext", "typing-extensions"]
 requires-python = ">=3.9"
 
 [project.urls]
