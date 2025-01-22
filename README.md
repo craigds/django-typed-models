@@ -130,5 +130,5 @@ class FelineAdmin(TypedModelAdmin):
 
 ## Requirements
 
-* Django 3.2+
-* Python 3.6+
+* Django 4.2+
+* Python 3.8+
