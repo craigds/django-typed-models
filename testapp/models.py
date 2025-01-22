@@ -134,3 +134,10 @@ class Developer(Employee):
 class Manager(Employee):
     # Adds the _exact_ same field as Developer. Shouldn't error.
     name = models.CharField(max_length=255, null=True)
+
+
+def typed_queryset() -> None:
+    # This isn't actually called, but it's here for the mypy check to ensure that type hinting works correctly.
+    queryset = Animal.objects.filter(pk=1)
+    reveal_type(queryset)  # QuerySet[Animal]
+    queryset.filter(name="lynx")  # works, because Animal has this field

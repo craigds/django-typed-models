@@ -1,7 +1,8 @@
 from functools import partial
 import types
 import typing
-from typing import ClassVar, cast
+from typing import ClassVar, cast, Generic, TypeVar
+from typing_extensions import Self
 
 import django
 from django.core.exceptions import FieldDoesNotExist, FieldError
@@ -20,13 +21,15 @@ else:
 
     reveal_type = print
 
+T = TypeVar("T", bound="TypedModel")
 
-class TypedModelManager(models.Manager["TypedModel"]):
-    def get_queryset(self) -> QuerySet:
+
+class TypedModelManager(models.Manager[T]):
+    def get_queryset(self) -> QuerySet[T]:
         qs = super(TypedModelManager, self).get_queryset()
         return self._filter_by_type(qs)
 
-    def _filter_by_type(self, qs: QuerySet) -> QuerySet:
+    def _filter_by_type(self, qs: QuerySet[T]) -> QuerySet[T]:
         if hasattr(self.model, "_typedmodels_type"):
             if len(self.model._typedmodels_subtypes) > 1:
                 qs = qs.filter(type__in=self.model._typedmodels_subtypes)
@@ -400,7 +403,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
     _typedmodels_registry: ClassVar[dict[str, type["TypedModel"]]]
     _meta: ClassVar[TypedModelOptions]
 
-    objects = TypedModelManager()
+    objects: ClassVar[TypedModelManager[Self]] = TypedModelManager()
 
     type = models.CharField(
         choices=(), max_length=255, null=False, blank=False, db_index=True
