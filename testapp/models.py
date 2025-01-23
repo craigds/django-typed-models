@@ -147,3 +147,8 @@ def typed_queryset() -> None:
     # This isn't actually called, but it's here for the mypy check to ensure that type hinting works correctly.
     queryset = Animal.objects.filter(pk=1)
     queryset.filter(name="lynx")  # works, because Animal has this field
+
+
+def do_get_type_classes() -> None:
+    for x in Animal.get_type_classes():
+        print(x)

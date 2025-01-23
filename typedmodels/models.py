@@ -223,9 +223,7 @@ class TypedModelMetaclass(ModelBase):
 
             # add a get_type_classes classmethod to allow fetching of all the subclasses (useful for admin)
 
-            def get_type_classes(
-                subcls: type["TypedModel"],
-            ) -> list[type["TypedModel"]]:
+            def _get_type_classes(subcls) -> list[type["TypedModel"]]:
                 """
                 Returns a list of the classes which are proxy subtypes of this concrete typed model.
                 """
@@ -237,9 +235,9 @@ class TypedModelMetaclass(ModelBase):
                         for k in subcls._typedmodels_subtypes
                     ]
 
-            cls.get_type_classes = classmethod(get_type_classes)  # type: ignore
+            cls._get_type_classes = classmethod(_get_type_classes)  # type: ignore
 
-            def get_types(subcls: type["TypedModel"]) -> list[str]:
+            def _get_types(subcls) -> list[str]:
                 """
                 Returns a list of the possible string values (for the `type` attribute) for classes
                 which are proxy subtypes of this concrete typed model.
@@ -249,7 +247,7 @@ class TypedModelMetaclass(ModelBase):
                 else:
                     return subcls._typedmodels_subtypes[:]
 
-            cls.get_types = classmethod(get_types)  # type: ignore
+            cls.get_types = classmethod(_get_types)  # type: ignore
 
         return cls
 
@@ -449,6 +447,21 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         new._state.adding = False
         new._state.db = db
         return new
+
+    @classmethod
+    def get_type_classes(cls) -> list["__builtins__.type[Self]"]:
+        """
+        Returns a list of the classes which are proxy subtypes of this concrete typed model.
+        """
+        return cls._get_type_classes()  # type: ignore
+
+    @classmethod
+    def get_types(cls) -> list[str]:
+        """
+        Returns a list of the possible string values (for the `type` attribute) for classes
+        which are proxy subtypes of this concrete typed model.
+        """
+        return cls._get_types()  # type: ignore
 
     def __init__(self, *args, _typedmodels_do_recast=None, **kwargs):
         # Calling __init__ on base class because some functions (e.g. save()) need access to field values from base
