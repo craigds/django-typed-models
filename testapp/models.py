@@ -1,8 +1,11 @@
+from typing import TypeVar, ClassVar
+from typing_extensions import Self
+
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import ForeignKey, PositiveIntegerField, CharField
-from typedmodels.models import TypedModel
+from typedmodels.models import TypedModel, TypedModelManager
 
 
 class UniqueIdentifier(models.Model):
@@ -123,8 +126,12 @@ class Child2(Parent):
     pass
 
 
-class Employee(TypedModel):
+class EmployeeManager(TypedModelManager):
     pass
+
+
+class Employee(TypedModel):
+    objects: ClassVar[EmployeeManager] = EmployeeManager()
 
 
 class Developer(Employee):
@@ -139,5 +146,4 @@ class Manager(Employee):
 def typed_queryset() -> None:
     # This isn't actually called, but it's here for the mypy check to ensure that type hinting works correctly.
     queryset = Animal.objects.filter(pk=1)
-    reveal_type(queryset)  # QuerySet[Animal]
     queryset.filter(name="lynx")  # works, because Animal has this field

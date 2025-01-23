@@ -21,7 +21,7 @@ else:
 
     reveal_type = print
 
-T = TypeVar("T", bound="TypedModel")
+T = TypeVar("T", bound="TypedModel", covariant=True)
 
 
 class TypedModelManager(models.Manager[T]):
