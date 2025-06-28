@@ -1,7 +1,7 @@
 from functools import partial
 import types
 import typing
-from typing import ClassVar, cast, Generic, Optional, TypeVar
+from typing import ClassVar, cast, Generic, Optional, Type, TypeVar
 from typing_extensions import Self
 
 import django
@@ -15,7 +15,7 @@ from django.db.models.options import make_immutable_fields_list, Options
 from django.utils.encoding import smart_str
 
 if typing.TYPE_CHECKING:
-    from django.db.models import QuerySet
+    from django.db.models import Model, QuerySet
 else:
     from django_stubs_ext import QuerySetAny as QuerySet
 
@@ -33,7 +33,7 @@ class TypedModelManager(models.Manager[T]):
 
     def _filter_by_type(self, qs: QuerySet[T]) -> QuerySet[T]:
         if hasattr(self.model, "_typedmodels_type"):
-            if len(self.model._typedmodels_subtypes) > 1:
+            if self.model._typedmodels_subtypes and len(self.model._typedmodels_subtypes) > 1:
                 qs = qs.filter(type__in=self.model._typedmodels_subtypes)
             else:
                 qs = qs.filter(type=self.model._typedmodels_type)
@@ -210,7 +210,8 @@ class TypedModelMetaclass(ModelBase):
                     and superclass not in (cls, base_class)
                     and hasattr(superclass, "_typedmodels_type")
                 ):
-                    superclass._typedmodels_subtypes.append(typ)
+                    if superclass._typedmodels_subtypes is not None:
+                        superclass._typedmodels_subtypes.append(typ)
 
             meta._patch_fields_cache(cls, base_class)
         elif not cls._meta.abstract:
@@ -398,9 +399,6 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
                 return "meoww"
     '''
     
-    _typedmodels_type: Optional[str]
-    _typedmodels_subtypes: Optional[list[str]]
-    
     _typedmodels_type: ClassVar[str]
     _typedmodels_subtypes: ClassVar[list[str]]
     _typedmodels_registry: ClassVar[dict[str, type["TypedModel"]]]
@@ -495,7 +493,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         if _typedmodels_do_recast:
             self.recast()
 
-    def recast(self, typ: "Optional[Type[TypedModel]]" = None) -> None:
+    def recast(self, typ: Optional[Type["TypedModel"]] = None) -> None:
         for base in reversed(self.__class__.mro()):
             if issubclass(base, TypedModel) and hasattr(base, "_typedmodels_registry"):
                 break
@@ -515,18 +513,20 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
                 self.type = self._typedmodels_type
 
         if typ is None:
-            typ = self.type
+            typ_str = self.type
         else:
             if isinstance(typ, type) and issubclass(typ, base):
                 model_name = typ._meta.model_name
-                typ = "%s.%s" % (typ._meta.app_label, model_name)
+                typ_str = "%s.%s" % (typ._meta.app_label, model_name)
+            else:
+                typ_str = str(typ)
 
         try:
-            correct_cls = base._typedmodels_registry[typ]
+            correct_cls = base._typedmodels_registry[typ_str]
         except KeyError:
             raise ValueError("Invalid %s identifier: %r" % (base.__name__, typ))
 
-        self.type = typ
+        self.type = typ_str
 
         current_cls = self.__class__
 
