@@ -77,3 +77,7 @@ This is enforced by the metaclass and will raise FieldError if violated.
 
 ### Serialization Patches
 The code monkey-patches Django's Python and XML serializers to use the base class model name for TypedModel instances.
+
+## Workflow Tips
+
+- Use tox to run the tests in this project
