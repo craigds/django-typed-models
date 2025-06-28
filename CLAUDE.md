@@ -81,3 +81,4 @@ The code monkey-patches Django's Python and XML serializers to use the base clas
 ## Workflow Tips
 
 - Use tox to run the tests in this project
+- Don't run pytest directly, use tox to run the tests
