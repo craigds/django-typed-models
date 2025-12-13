@@ -348,7 +348,6 @@ class TypedModelOptions(Options):
     _typedmodels_original_many_to_many: set[str]
     fields_from_subclasses: dict[str, Field]
     declared_fields: dict[str, Field]
-    many_to_many: list[models.ManyToManyField]
 
 
 class TypedModel(models.Model, metaclass=TypedModelMetaclass):

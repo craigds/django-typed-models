@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Generic
 
 from django.contrib.admin import ModelAdmin
@@ -17,11 +16,10 @@ class TypedModelAdmin(ModelAdmin, Generic[TypedModelT]):
         self,
         request: "HttpRequest",
         obj: "TypedModelT | None" = None,
-    ) -> Sequence[str | Sequence[str]]:
-        fields = super().get_fields(request, obj)
+    ) -> list[str | list[str] | tuple[str, ...]]:
+        fields = list(super().get_fields(request, obj))
         # we remove the type field from the admin of subclasses.
         if TypedModel not in self.model.__bases__:
-            fields = list(fields)  # Convert to mutable list
             fields.remove(self.model._meta.get_field("type").name)
         return fields
 
@@ -34,5 +32,5 @@ class TypedModelAdmin(ModelAdmin, Generic[TypedModelT]):
     ) -> None:
         if getattr(obj, "_typedmodels_type", None) is None:
             # new instances don't have the type attribute
-            obj._typedmodels_type = form.cleaned_data["type"]
+            obj._typedmodels_type = form.cleaned_data["type"]  # type: ignore[misc]
         obj.save()
