@@ -14,7 +14,6 @@ classifiers = [
     "Environment :: Web Environment",
     "Framework :: Django",
     "Framework :: Django :: 4.2",
-    "Framework :: Django :: 5.0",
     "Framework :: Django :: 5.1",
     "Framework :: Django :: 5.2",
     "Intended Audience :: Developers",
@@ -23,7 +22,6 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -31,13 +29,27 @@ classifiers = [
     "Topic :: Utilities",
 ]
 dependencies = ["django_stubs_ext", "typing-extensions"]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [project.urls]
-Homepage = "http://github.com/craigds/django-typed-models"
+Homepage = "https://github.com/craigds/django-typed-models"
 
 [tool.hatch.version]
 path = "typedmodels/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["typedmodels"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+exclude = ["testapp/migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = [
+    "E501",  # line too long - let formatter handle it where possible
+]
+
+[tool.ruff.lint.per-file-ignores]
+"typedmodels/tests.py" = ["E721"]  # type() == Class comparisons are intentional in tests
