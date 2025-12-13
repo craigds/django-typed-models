@@ -1,7 +1,6 @@
+import pytest
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-
-import pytest
 
 try:
     import yaml
@@ -14,21 +13,22 @@ except ImportError:
 from django.core import serializers
 from django.core.exceptions import FieldError
 
-from .models import TypedModelManager
 from testapp.models import (
+    AbstractVegetable,
     AngryBigCat,
     Animal,
     BigCat,
     Canine,
-    Feline,
-    Parrot,
-    AbstractVegetable,
-    Vegetable,
-    Fruit,
-    UniqueIdentifier,
     Child2,
     Employee,
+    Feline,
+    Fruit,
+    Parrot,
+    UniqueIdentifier,
+    Vegetable,
 )
+
+from .models import TypedModelManager
 
 
 @pytest.fixture
@@ -330,11 +330,7 @@ def test_queryset_defer_type_with_subclass_fields(db, animals):
         "json",
         pytest.param(
             "yaml",
-            marks=[
-                pytest.mark.skipif(
-                    not PYYAML_AVAILABLE, reason="PyYAML is not available"
-                )
-            ],
+            marks=[pytest.mark.skipif(not PYYAML_AVAILABLE, reason="PyYAML is not available")],
         ),
     ],
 )

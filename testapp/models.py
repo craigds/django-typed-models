@@ -1,27 +1,23 @@
-from typing import TypeVar, ClassVar
-from typing_extensions import Self
+from typing import ClassVar
 
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from django.db.models import ForeignKey, PositiveIntegerField, CharField
+from django.db.models import CharField, ForeignKey, PositiveIntegerField
+
 from typedmodels.models import TypedModel, TypedModelManager
 
 
 class UniqueIdentifier(models.Model):
     referent = GenericForeignKey()
-    content_type = ForeignKey(
-        ContentType, null=True, blank=True, on_delete=models.CASCADE
-    )
+    content_type = ForeignKey(ContentType, null=True, blank=True, on_delete=models.CASCADE)
     object_id = PositiveIntegerField(null=True, blank=True)
     created = models.DateTimeField(db_index=True, auto_now_add=True)
     name = CharField(max_length=255)
 
 
 class UniqueIdentifierMixin(models.Model):
-    unique_identifiers = GenericRelation(
-        UniqueIdentifier, related_query_name="referents"
-    )
+    unique_identifiers = GenericRelation(UniqueIdentifier, related_query_name="referents")
 
     class Meta:
         abstract = True
