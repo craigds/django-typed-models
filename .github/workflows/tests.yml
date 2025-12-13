@@ -1,33 +1,47 @@
 name: django-typed-models tests
 on: [pull_request, push]
 jobs:
-  build:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install pre-commit
+        run: uv pip install --system pre-commit
+
+      - name: Run pre-commit
+        run: pre-commit run --all-files
+
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version:
-          - "3.9"
           - "3.10"
           - "3.12"
           - "3.13"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: |
-          pip install flake8 tox
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
-      - name: Lint with flake8
-        run: |
-          # stop the build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      - name: Install tox
+        run: uv pip install --system tox
 
       - name: Test with pytest
-        run: |
-          tox run -f py$(echo ${{ matrix.python-version }} | tr -d .)
+        run: tox run -f py$(echo ${{ matrix.python-version }} | tr -d .)
