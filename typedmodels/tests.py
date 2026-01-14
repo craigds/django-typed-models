@@ -17,6 +17,7 @@ from testapp.models import (
     AbstractVegetable,
     AngryBigCat,
     Animal,
+    BaseModelWithIndex,
     BigCat,
     Canine,
     Child2,
@@ -24,6 +25,8 @@ from testapp.models import (
     Feline,
     Fruit,
     Parrot,
+    SubModelA,
+    SubModelB,
     UniqueIdentifier,
     Vegetable,
 )
@@ -440,3 +443,42 @@ def test_same_field_name_in_two_subclasses():
 
         class Tester3(Employee):
             name = models.IntegerField(null=True)
+
+
+def test_base_model_with_indexes(db):
+    """Test that indexes on base TypedModel work correctly (issue #58).
+
+    The issue: When a TypedModel base class has indexes in Meta, and proxy
+    subclasses inherit from that Meta, they would inherit the indexes attribute.
+    Django's system checks would then fail because the indexed fields aren't
+    local to the proxy models.
+
+    The fix: TypedModelMetaclass removes the 'indexes' attribute from the Meta
+    class before Django's ModelBase processes proxy models, preventing the error.
+    """
+    # Verify that SubModelA and SubModelB are proxy models
+    assert SubModelA._meta.proxy is True
+    assert SubModelB._meta.proxy is True
+
+    # The base model should have the index in its _meta
+    assert (
+        len(BaseModelWithIndex._meta.indexes) == 1
+    ), "Base model should have its index defined in _meta"
+
+    # Proxy models should NOT have indexes in their _meta (they share the base table)
+    assert (
+        len(SubModelA._meta.indexes) == 0
+    ), "Proxy models shouldn't have indexes in _meta (they use the base model's table)"
+    assert (
+        len(SubModelB._meta.indexes) == 0
+    ), "Proxy models shouldn't have indexes in _meta (they use the base model's table)"
+
+    # Verify the models work at runtime
+    obj_a = SubModelA.objects.create(name="test_a", tag="tag1", field_a="a_value")
+    obj_b = SubModelB.objects.create(name="test_b", tag="tag2", field_b=42)
+
+    assert SubModelA.objects.get(pk=obj_a.pk).field_a == "a_value"
+    assert SubModelB.objects.get(pk=obj_b.pk).field_b == 42
+    assert SubModelA.objects.count() == 1
+    assert SubModelB.objects.count() == 1
+    assert BaseModelWithIndex.objects.count() == 2

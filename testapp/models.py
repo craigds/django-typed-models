@@ -148,3 +148,41 @@ def typed_queryset() -> None:
 def do_get_type_classes() -> None:
     for x in Animal.get_type_classes():
         print(x)
+
+
+# Test model for issue #58 - indexes on TypedModel base classes
+# The issue occurs when:
+# 1. An abstract model defines indexes
+# 2. A concrete TypedModel inherits from that abstract model
+# 3. Proxy subclasses of the TypedModel inherit the Meta with indexes
+
+
+class AbstractModelWithIndex(models.Model):
+    """Abstract model with indexes."""
+
+    name = models.CharField(max_length=100)
+    tag = models.CharField(max_length=100)
+
+    class Meta:
+        abstract = True
+        indexes = [models.Index(fields=["tag"])]
+
+
+class BaseModelWithIndex(AbstractModelWithIndex, TypedModel):
+    """Concrete TypedModel inheriting from abstract model."""
+
+    pass
+
+
+class SubModelA(BaseModelWithIndex):
+    field_a = models.CharField(max_length=100, null=True)
+
+    class Meta(BaseModelWithIndex.Meta):
+        verbose_name = "Sub Model A"
+
+
+class SubModelB(BaseModelWithIndex):
+    field_b = models.IntegerField(null=True)
+
+    class Meta(BaseModelWithIndex.Meta):
+        verbose_name = "Sub Model B"
