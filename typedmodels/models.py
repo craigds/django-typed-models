@@ -94,6 +94,14 @@ class TypedModelMetaclass(ModelBase):
                 )
             Meta.proxy = True
 
+            # Proxy models shouldn't define their own indexes - they share the base model's table and indexes.
+            # If we don't clear this, Django will complain that the index fields aren't local to the proxy model.
+            # See issue #58
+            if hasattr(Meta, "indexes"):
+                # Set to empty list to override any inherited indexes
+                # (delattr won't work for inherited attributes)
+                Meta.indexes = []
+
             declared_fields = dict(
                 (name, element)
                 for name, element in list(classdict.items())
