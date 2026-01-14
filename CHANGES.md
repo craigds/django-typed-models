@@ -2,6 +2,22 @@
 
 Backward-incompatible changes for released versions are listed here (for 0.5 onwards.)
 
+## 0.15.2
+
+* Fixed proxy models inheriting indexes from abstract parent models ([#58](https://github.com/craigds/django-typed-models/issues/58))
+
+## 0.15.1
+
+* Fixed incorrect type hints and added type checking to CI
+
+## 0.15.0
+
+* Added support for Django 6.0
+* Added full type hinting support
+* Dropped support for Python 3.8 and 3.9
+* Dropped support for Django 5.0 (EOL)
+* Migrated from setup.py to pyproject.toml
+
 ## 0.14
 
 * Added support for Django 4.2 and 5.0.
