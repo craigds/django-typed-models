@@ -127,10 +127,10 @@ class TypedModelMetaclass(ModelBase):
                     # We'll do more stuff when the class is created.
                     old_do_related_class = field.do_related_class
 
-                    def do_related_class(self, other, cls):
+                    def do_related_class(self, other, cls, _old=old_do_related_class):
                         base_class_name = base_class.__name__
                         cls._meta.model_name = classname.lower()
-                        old_do_related_class(other, cls)  # noqa: B023
+                        _old(other, cls)
                         cls._meta.model_name = base_class_name.lower()
 
                     field.do_related_class = types.MethodType(do_related_class, field)  # type: ignore
