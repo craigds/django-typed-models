@@ -5,3 +5,13 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
+
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.409
+    hooks:
+      - id: pyright
+        additional_dependencies:
+          - django
+          - django-stubs
+          - django-stubs-ext
+          - typing-extensions

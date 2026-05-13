@@ -1,0 +1,8 @@
+{
+  "include": ["typedmodels"],
+  "exclude": ["typedmodels/tests.py"],
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.10",
+  "typeCheckingMode": "basic"
+}

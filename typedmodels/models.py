@@ -2,7 +2,7 @@ import builtins
 import types
 import typing
 from functools import partial
-from typing import ClassVar, TypeVar, cast
+from typing import Any, ClassVar, TypeVar, cast
 
 import django
 from django.core.exceptions import FieldDoesNotExist, FieldError
@@ -11,6 +11,7 @@ from django.core.serializers.xml_serializer import Serializer as _XmlSerializer
 from django.db import models
 from django.db.models.base import DEFERRED, ModelBase  # type: ignore
 from django.db.models.fields import Field
+from django.db.models.fields.related import RelatedField
 from django.db.models.options import Options, make_immutable_fields_list
 from django.utils.encoding import smart_str
 from typing_extensions import Self
@@ -46,16 +47,16 @@ class TypedModelMetaclass(ModelBase):
     This metaclass enables a model for auto-downcasting using a ``type`` attribute.
     """
 
-    def __new__(meta, classname, bases, classdict) -> type["TypedModel"]:
+    def __new__(mcs, classname, bases, classdict) -> type["TypedModel"]:
         try:
-            TypedModel  # noqa: B018
+            TypedModel  # noqa: B018  # pyright: ignore[reportUnusedExpression]
         except NameError:
             # don't do anything for TypedModel class itself
             #
             # ...except updating Meta class to instantiate fields_from_subclasses attribute
             typed_model = cast(
                 type["TypedModel"],
-                super().__new__(meta, classname, bases, classdict),
+                super().__new__(mcs, classname, bases, classdict),
             )
             # We have to set this attribute after _meta has been created, otherwise an
             # exception would be thrown by Options class constructor.
@@ -83,6 +84,7 @@ class TypedModelMetaclass(ModelBase):
             class Meta:
                 proxy: bool
                 app_label: str
+                indexes: list
 
             Meta = classdict.get("Meta", Meta)  # type: ignore
             if getattr(Meta, "proxy", False):
@@ -90,7 +92,7 @@ class TypedModelMetaclass(ModelBase):
                 # proxy class, without TypedModel logic.
                 return cast(
                     type["TypedModel"],
-                    super().__new__(meta, classname, bases, classdict),
+                    super().__new__(mcs, classname, bases, classdict),
                 )
             Meta.proxy = True
 
@@ -120,7 +122,7 @@ class TypedModelMetaclass(ModelBase):
                         f"Add null=True to the {classname}.{field_name} field definition."
                     )
 
-                if isinstance(field, models.fields.related.RelatedField):
+                if isinstance(field, RelatedField):
                     # Monkey patching field instance to make do_related_class use created class instead of base_class.
                     # Actually that class doesn't exist yet, so we just monkey patch base_class for a while,
                     # changing _meta.model_name, so accessor names are generated properly.
@@ -134,11 +136,19 @@ class TypedModelMetaclass(ModelBase):
                         cls._meta.model_name = base_class_name.lower()
 
                     field.do_related_class = types.MethodType(do_related_class, field)  # type: ignore
-                if isinstance(field, models.fields.related.RelatedField):
+
                     remote_field = field.remote_field
-                    if isinstance(remote_field.model, TypedModel) and remote_field.model.base_class:
+                    related_model = remote_field.model
+                    if (
+                        isinstance(related_model, type)
+                        and issubclass(related_model, TypedModel)
+                        and related_model.base_class
+                    ):
+                        # Normalise limit_choices_to into a dict so we can add our type filter.
+                        if not isinstance(remote_field.limit_choices_to, dict):
+                            remote_field.limit_choices_to = {}
                         remote_field.limit_choices_to["type__in"] = (
-                            remote_field.model._typedmodels_subtypes
+                            related_model._typedmodels_subtypes
                         )
 
                 # Check if a field with this name has already been added to class
@@ -176,7 +186,7 @@ class TypedModelMetaclass(ModelBase):
 
         cls = cast(
             type[TypedModel],
-            super().__new__(meta, classname, bases, classdict),
+            super().__new__(mcs, classname, bases, classdict),
         )
 
         cls._meta.fields_from_subclasses = {}
@@ -212,7 +222,7 @@ class TypedModelMetaclass(ModelBase):
                     if superclass._typedmodels_subtypes is not None:
                         superclass._typedmodels_subtypes.append(typ)
 
-            meta._patch_fields_cache(cls, base_class)
+            TypedModelMetaclass._patch_fields_cache(cls, base_class)
         elif not cls._meta.abstract:
             # this is the base class
             cls._typedmodels_registry = {}
@@ -249,31 +259,31 @@ class TypedModelMetaclass(ModelBase):
         return cls
 
     @staticmethod
-    def _model_has_field(cls, base_class: type[TypedModelT], field_name: str):
+    def _model_has_field(model_cls, base_class: type[TypedModelT], field_name: str):
         if field_name in base_class._meta._typedmodels_original_many_to_many:
             return True
         if field_name in base_class._meta._typedmodels_original_fields:
             return True
         if any(f.name == field_name for f in base_class._meta.private_fields):
             return True
-        for ancestor in cls.mro():
-            if issubclass(ancestor, base_class) and ancestor != base_class:
+        for ancestor in model_cls.mro():
+            if issubclass(ancestor, base_class) and ancestor is not base_class:
                 if field_name in ancestor._meta.declared_fields.keys():
                     return True
 
-        if field_name in cls._meta.fields_map:
+        if field_name in model_cls._meta.fields_map:
             # Crazy case where a reverse M2M from another typedmodels proxy points to this proxy
             # (this is an m2m reverse field)
             return True
         return False
 
     @staticmethod
-    def _patch_fields_cache(cls, base_class: type[TypedModelT]):
-        orig_get_fields = cls._meta._get_fields
+    def _patch_fields_cache(model_cls, base_class: type[TypedModelT]):
+        orig_get_fields = model_cls._meta._get_fields
 
         if django.VERSION >= (5, 0):
 
-            def _get_fields(
+            def _get_fields(  # pyright: ignore[reportRedeclaration]
                 self,
                 forward=True,
                 reverse=True,
@@ -302,7 +312,7 @@ class TypedModelMetaclass(ModelBase):
                     fields = [
                         f
                         for f in fields
-                        if TypedModelMetaclass._model_has_field(cls, base_class, f.name)
+                        if TypedModelMetaclass._model_has_field(model_cls, base_class, f.name)
                     ]
                     fields = make_immutable_fields_list("get_fields()", fields)
                     self._get_fields_cache[cache_key] = fields
@@ -310,7 +320,7 @@ class TypedModelMetaclass(ModelBase):
 
         else:
 
-            def _get_fields(
+            def _get_fields(  # type: ignore[no-redef]
                 self,
                 forward=True,
                 reverse=True,
@@ -339,16 +349,16 @@ class TypedModelMetaclass(ModelBase):
                     fields = [
                         f
                         for f in fields
-                        if TypedModelMetaclass._model_has_field(cls, base_class, f.name)
+                        if TypedModelMetaclass._model_has_field(model_cls, base_class, f.name)
                     ]
                     fields = make_immutable_fields_list("get_fields()", fields)
                     self._get_fields_cache[cache_key] = fields
                 return fields
 
-        cls._meta._get_fields = partial(_get_fields, cls._meta)
+        model_cls._meta._get_fields = partial(_get_fields, model_cls._meta)
 
         # If fields are already cached, expire the cache.
-        cls._meta._expire_cache()
+        model_cls._meta._expire_cache()
 
 
 class TypedModelOptions(Options):
@@ -394,8 +404,12 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
 
     _typedmodels_type: ClassVar[str]
     _typedmodels_subtypes: ClassVar[list[str]]
-    _typedmodels_registry: ClassVar[dict[str, type["TypedModel"]]]
+    # NB: builtins.type used because `type` is shadowed by the CharField below.
+    _typedmodels_registry: ClassVar["dict[str, builtins.type[TypedModel]]"]
     _meta: ClassVar[TypedModelOptions]
+    # Set by the metaclass to the non-proxy TypedModel ancestor (or None on the
+    # base class itself). Declared here so type-checkers can see it on instances.
+    base_class: ClassVar["builtins.type[TypedModel] | None"]
 
     objects: ClassVar[TypedModelManager[Self]] = TypedModelManager()
 
@@ -410,40 +424,40 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
     @classmethod
     def from_db(cls, db, field_names, values):
         # Called when django instantiates a model class from a queryset.
-        _typedmodels_do_recast = True
-        if "type" not in field_names:
-            # LIMITATION:
-            # `type` was deferred in the queryset.
-            # So we can't cast this model without generating another query.
-            # That'd be *really* bad for performance.
-            # Most likely, this would have happened in `obj.fieldname`, where `fieldname` is deferred.
-            # This will populate a queryset with .only('fieldname'),
-            # leading to this situation where 'type' is deferred.
-            # Django will then copy the fieldname from those model instances onto the original obj.
-            # In this case we don't really need a typed subclass, so we choose to just not recast in
-            # this situation.
-            #
-            # Unfortunately we can't tell the difference between this situation and
-            # MyModel.objects.only('myfield'). If you do that, we will also not recast.
-            #
-            # If you want you can recast manually (call obj.recast() on each object in your
-            # queryset) - but by far a better solution would be to not defer the `type` field
-            # to start with.
-            _typedmodels_do_recast = False
+        # Resolve the correct subclass from the row's `type` value and
+        # instantiate it directly, instead of constructing `cls` and mutating
+        # `__class__` afterwards via recast().
+        #
+        # If `type` was deferred (not in field_names), we can't know the
+        # subclass without another query, so we fall back to `cls`.
+        # Most commonly this happens via `.only(...)` — Django copies
+        # attributes from the partial instances onto the originals, so
+        # recasting them isn't needed anyway. Callers who care can call
+        # `obj.recast()` manually, but it's better to not defer `type`.
+        values_by_name = dict(zip(field_names, values, strict=False))
+        target_cls = cls
+        type_value = values_by_name.get("type")
+        if type_value:
+            try:
+                target_cls = cls._typedmodels_registry[type_value]
+            except KeyError:
+                raise ValueError(f"Invalid {cls.__name__} identifier: {type_value!r}") from None
 
-        if len(values) != len(cls._meta.concrete_fields):
-            values_iter = iter(values)
+        if target_cls is not cls or len(values) != len(target_cls._meta.concrete_fields):
+            # Reshape values to match `target_cls`'s concrete fields. This
+            # handles both deferred fields (DEFERRED placeholder) and the
+            # case where the queryset selected a superset of the target
+            # subclass's fields (sibling-subclass columns get dropped).
             values = [
-                next(values_iter) if f.attname in field_names else DEFERRED
-                for f in cls._meta.concrete_fields
+                values_by_name.get(f.attname, DEFERRED) for f in target_cls._meta.concrete_fields
             ]
-        new = cls(*values, _typedmodels_do_recast=_typedmodels_do_recast)
+        new = target_cls(*values, _typedmodels_do_recast=False)
         new._state.adding = False
         new._state.db = db
         return new
 
     @classmethod
-    def get_type_classes(cls) -> list["__builtins__.type[Self]"]:
+    def get_type_classes(cls) -> "list[builtins.type[Self]]":
         """
         Returns a list of the classes which are proxy subtypes of this concrete typed model.
         """
@@ -457,28 +471,51 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         """
         return cls._get_types()  # type: ignore
 
-    def __init__(self, *args, _typedmodels_do_recast=None, **kwargs):
-        # Calling __init__ on base class because some functions (e.g. save()) need access to field values from base
-        # class.
+    def __new__(cls, *args: Any, **kwargs: Any) -> "TypedModel":
+        # If a `type` kwarg names a registered subclass, allocate that subclass
+        # directly instead of constructing `cls` and mutating `__class__` via
+        # recast() afterwards. Positional construction (e.g. from from_db) is
+        # already targeted at the right class, so no lookup is needed there.
+        type_value = kwargs.get("type")
+        if type_value:
+            registry = getattr(cls, "_typedmodels_registry", None)
+            if registry is not None:
+                target_cls = registry.get(type_value)
+                if target_cls is not None and target_cls is not cls:
+                    return super().__new__(target_cls)
+        return super().__new__(cls)
 
+    def __init__(
+        self, *args: Any, _typedmodels_do_recast: bool | None = None, **kwargs: Any
+    ) -> None:
         # Move args to kwargs since base_class may have more fields defined with different ordering
-        args = list(args)
         if len(args) > len(self._meta.fields):
             # Daft, but matches old exception sans the err msg.
             raise IndexError("Number of args exceeds number of fields")
         for field_value, field in zip(args, self._meta.fields, strict=False):
             kwargs[field.attname] = field_value
-        args = []  # args were all converted to kwargs
+        args = ()  # args were all converted to kwargs
 
+        # Bind via the base class so that fields defined on sibling subclasses
+        # (and therefore present in the shared table) are still recognised.
+        # The subclass `_meta` is filtered by _patch_fields_cache.
         if self.base_class:
             before_class = self.__class__
-            self.__class__ = self.base_class
+            # __class__ is reassigned here (and below) to route super().__init__
+            # via the base class's unfiltered _meta. Type-checkers reasonably
+            # don't like this; the mechanism is core to how typedmodels exploits
+            # Django's Model layout.
+            self.__class__ = self.base_class  # pyright: ignore[reportAttributeAccessIssue]
         else:
             before_class = None
         super().__init__(*args, **kwargs)
         if before_class:
             self.__class__ = before_class
 
+        # __new__ has already resolved the typed subclass from the `type`
+        # kwarg, so for the common kwargs-construction path this is a no-op.
+        # We still call it to cover positional construction where `type` is
+        # in *args (e.g. legacy callers passing positional args).
         if _typedmodels_do_recast is None:
             _typedmodels_do_recast = self._auto_recast
         if _typedmodels_do_recast:
@@ -521,8 +558,11 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
 
         current_cls = self.__class__
 
-        if current_cls != correct_cls:
-            self.__class__ = correct_cls
+        if current_cls is not correct_cls:
+            # Downcasting an existing instance to its typed subclass is the
+            # whole point of recast(); type-checkers can't express in-place
+            # __class__ mutation.
+            self.__class__ = correct_cls  # pyright: ignore[reportAttributeAccessIssue]
 
     def save(self, *args, **kwargs) -> None:
         self.presave(*args, **kwargs)
@@ -534,7 +574,10 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
             raise RuntimeError(f"Untyped {self.__class__.__name__} cannot be saved.")
 
     def _get_unique_checks(self, exclude=None, **kwargs):
-        unique_checks, date_checks = super()._get_unique_checks(exclude=exclude, **kwargs)
+        # django-stubs omits underscore-prefixed Model methods from its public stubs.
+        unique_checks, date_checks = super()._get_unique_checks(  # pyright: ignore[reportAttributeAccessIssue]
+            exclude=exclude, **kwargs
+        )
 
         for i, (_model_class, field_names) in reversed(list(enumerate(unique_checks))):
             for fn in field_names:
@@ -557,7 +600,7 @@ def _get_dump_object(self, obj: "Model") -> dict:
     if isinstance(obj, TypedModel):
         return {
             "pk": smart_str(obj._get_pk_val(), strings_only=True),
-            "model": smart_str(getattr(obj, "base_class", obj)._meta),
+            "model": smart_str((obj.base_class or obj)._meta),
             "fields": self._current,
         }
     else:
@@ -573,7 +616,7 @@ def _start_object(self, obj: "Model") -> None:
     if isinstance(obj, TypedModel):
         self.indent(1)
         obj_pk = obj._get_pk_val()
-        modelname = smart_str(getattr(obj, "base_class", obj)._meta)
+        modelname = smart_str((obj.base_class or obj)._meta)
         if obj_pk is None:
             attrs = {
                 "model": modelname,
