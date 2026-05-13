@@ -2,6 +2,11 @@
 
 Backward-incompatible changes for released versions are listed here (for 0.5 onwards.)
 
+## 0.16.0
+
+* Dropped support for Django 4.2 and 5.1 (EOL)
+* Improved type hinting compatibility with pyright
+
 ## 0.15.2
 
 * Fixed proxy models inheriting indexes from abstract parent models ([#58](https://github.com/craigds/django-typed-models/issues/58))

@@ -4,7 +4,6 @@ import typing
 from functools import partial
 from typing import Any, ClassVar, TypeVar, cast
 
-import django
 from django.core.exceptions import FieldDoesNotExist, FieldError
 from django.core.serializers.python import Serializer as _PythonSerializer
 from django.core.serializers.xml_serializer import Serializer as _XmlSerializer
@@ -281,79 +280,40 @@ class TypedModelMetaclass(ModelBase):
     def _patch_fields_cache(model_cls, base_class: type[TypedModelT]):
         orig_get_fields = model_cls._meta._get_fields
 
-        if django.VERSION >= (5, 0):
+        def _get_fields(
+            self,
+            forward=True,
+            reverse=True,
+            include_parents=True,
+            include_hidden=False,
+            topmost_call=True,
+        ):
+            cache_key = (
+                forward,
+                reverse,
+                include_parents,
+                include_hidden,
+                topmost_call,
+            )
 
-            def _get_fields(  # pyright: ignore[reportRedeclaration]
-                self,
-                forward=True,
-                reverse=True,
-                include_parents=True,
-                include_hidden=False,
-                topmost_call=True,
-            ):
-                cache_key = (
-                    forward,
-                    reverse,
-                    include_parents,
-                    include_hidden,
-                    topmost_call,
-                )
-
-                was_cached = cache_key in self._get_fields_cache
-                fields = orig_get_fields(
-                    forward=forward,
-                    reverse=reverse,
-                    include_parents=include_parents,
-                    include_hidden=include_hidden,
-                    topmost_call=topmost_call,
-                )
-                # If it was cached already, it's because we've already filtered this, skip it
-                if not was_cached:
-                    fields = [
-                        f
-                        for f in fields
-                        if TypedModelMetaclass._model_has_field(model_cls, base_class, f.name)
-                    ]
-                    fields = make_immutable_fields_list("get_fields()", fields)
-                    self._get_fields_cache[cache_key] = fields
-                return fields
-
-        else:
-
-            def _get_fields(  # type: ignore[no-redef]
-                self,
-                forward=True,
-                reverse=True,
-                include_parents=True,
-                include_hidden=False,
-                seen_models=None,
-            ):
-                cache_key = (
-                    forward,
-                    reverse,
-                    include_parents,
-                    include_hidden,
-                    seen_models is None,
-                )
-
-                was_cached = cache_key in self._get_fields_cache
-                fields = orig_get_fields(
-                    forward=forward,
-                    reverse=reverse,
-                    include_parents=include_parents,
-                    include_hidden=include_hidden,
-                    seen_models=seen_models,
-                )
-                # If it was cached already, it's because we've already filtered this, skip it
-                if not was_cached:
-                    fields = [
-                        f
-                        for f in fields
-                        if TypedModelMetaclass._model_has_field(model_cls, base_class, f.name)
-                    ]
-                    fields = make_immutable_fields_list("get_fields()", fields)
-                    self._get_fields_cache[cache_key] = fields
-                return fields
+            was_cached = cache_key in self._get_fields_cache
+            fields = orig_get_fields(
+                forward=forward,
+                reverse=reverse,
+                include_parents=include_parents,
+                include_hidden=include_hidden,
+                topmost_call=topmost_call,
+            )
+            # If it was cached already, it's because we've already filtered this, skip it
+            if not was_cached:
+                fields = [
+                    f
+                    for f in fields
+                    if TypedModelMetaclass._model_has_field(model_cls, base_class, f.name)
+                ]
+                fields = make_immutable_fields_list("get_fields()", fields)
+                self._get_fields_cache[cache_key] = fields
+            return fields
 
         model_cls._meta._get_fields = partial(_get_fields, model_cls._meta)
 
