@@ -2,7 +2,7 @@ import builtins
 import types
 import typing
 from functools import partial
-from typing import ClassVar, TypeVar, cast
+from typing import Any, ClassVar, TypeVar, cast
 
 import django
 from django.core.exceptions import FieldDoesNotExist, FieldError
@@ -394,8 +394,12 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
 
     _typedmodels_type: ClassVar[str]
     _typedmodels_subtypes: ClassVar[list[str]]
-    _typedmodels_registry: ClassVar[dict[str, type["TypedModel"]]]
+    # NB: builtins.type used because `type` is shadowed by the CharField below.
+    _typedmodels_registry: ClassVar["dict[str, builtins.type[TypedModel]]"]
     _meta: ClassVar[TypedModelOptions]
+    # Set by the metaclass to the non-proxy TypedModel ancestor (or None on the
+    # base class itself). Declared here so type-checkers can see it on instances.
+    base_class: ClassVar["builtins.type[TypedModel] | None"]
 
     objects: ClassVar[TypedModelManager[Self]] = TypedModelManager()
 
@@ -443,7 +447,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         return new
 
     @classmethod
-    def get_type_classes(cls) -> list["__builtins__.type[Self]"]:
+    def get_type_classes(cls) -> "list[builtins.type[Self]]":
         """
         Returns a list of the classes which are proxy subtypes of this concrete typed model.
         """
@@ -457,18 +461,17 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         """
         return cls._get_types()  # type: ignore
 
-    def __init__(self, *args, _typedmodels_do_recast=None, **kwargs):
+    def __init__(self, *args: Any, _typedmodels_do_recast: bool | None = None, **kwargs: Any) -> None:
         # Calling __init__ on base class because some functions (e.g. save()) need access to field values from base
         # class.
 
         # Move args to kwargs since base_class may have more fields defined with different ordering
-        args = list(args)
         if len(args) > len(self._meta.fields):
             # Daft, but matches old exception sans the err msg.
             raise IndexError("Number of args exceeds number of fields")
         for field_value, field in zip(args, self._meta.fields, strict=False):
             kwargs[field.attname] = field_value
-        args = []  # args were all converted to kwargs
+        args = ()  # args were all converted to kwargs
 
         if self.base_class:
             before_class = self.__class__
