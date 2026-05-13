@@ -461,7 +461,9 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         """
         return cls._get_types()  # type: ignore
 
-    def __init__(self, *args: Any, _typedmodels_do_recast: bool | None = None, **kwargs: Any) -> None:
+    def __init__(
+        self, *args: Any, _typedmodels_do_recast: bool | None = None, **kwargs: Any
+    ) -> None:
         # Calling __init__ on base class because some functions (e.g. save()) need access to field values from base
         # class.
 
