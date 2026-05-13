@@ -139,7 +139,11 @@ class TypedModelMetaclass(ModelBase):
 
                     remote_field = field.remote_field
                     related_model = remote_field.model
-                    if isinstance(related_model, type) and issubclass(related_model, TypedModel) and related_model.base_class:
+                    if (
+                        isinstance(related_model, type)
+                        and issubclass(related_model, TypedModel)
+                        and related_model.base_class
+                    ):
                         # Normalise limit_choices_to into a dict so we can add our type filter.
                         if not isinstance(remote_field.limit_choices_to, dict):
                             remote_field.limit_choices_to = {}
@@ -437,9 +441,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
             try:
                 target_cls = cls._typedmodels_registry[type_value]
             except KeyError:
-                raise ValueError(
-                    f"Invalid {cls.__name__} identifier: {type_value!r}"
-                ) from None
+                raise ValueError(f"Invalid {cls.__name__} identifier: {type_value!r}") from None
 
         if target_cls is not cls or len(values) != len(target_cls._meta.concrete_fields):
             # Reshape values to match `target_cls`'s concrete fields. This
@@ -447,8 +449,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
             # case where the queryset selected a superset of the target
             # subclass's fields (sibling-subclass columns get dropped).
             values = [
-                values_by_name.get(f.attname, DEFERRED)
-                for f in target_cls._meta.concrete_fields
+                values_by_name.get(f.attname, DEFERRED) for f in target_cls._meta.concrete_fields
             ]
         new = target_cls(*values, _typedmodels_do_recast=False)
         new._state.adding = False
