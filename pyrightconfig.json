@@ -4,8 +4,5 @@
   "venvPath": ".",
   "venv": ".venv",
   "pythonVersion": "3.10",
-  "typeCheckingMode": "off",
-  "reportInvalidTypeForm": "error",
-  "reportUndefinedVariable": "error",
-  "reportUnboundVariable": "error"
+  "typeCheckingMode": "basic"
 }
