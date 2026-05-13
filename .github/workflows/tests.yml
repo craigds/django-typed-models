@@ -39,6 +39,25 @@ jobs:
       - name: Run mypy
         run: tox -e mypy
 
+  pyright:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install tox
+        run: uv pip install --system tox
+
+      - name: Run pyright
+        run: tox -e pyright
+
   test:
     runs-on: ubuntu-latest
     strategy:

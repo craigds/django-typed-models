@@ -83,6 +83,7 @@ class TypedModelMetaclass(ModelBase):
             class Meta:
                 proxy: bool
                 app_label: str
+                indexes: list
 
             Meta = classdict.get("Meta", Meta)  # type: ignore
             if getattr(Meta, "proxy", False):
@@ -257,7 +258,7 @@ class TypedModelMetaclass(ModelBase):
         if any(f.name == field_name for f in base_class._meta.private_fields):
             return True
         for ancestor in cls.mro():
-            if issubclass(ancestor, base_class) and ancestor != base_class:
+            if issubclass(ancestor, base_class) and ancestor is not base_class:
                 if field_name in ancestor._meta.declared_fields.keys():
                     return True
 
@@ -310,7 +311,7 @@ class TypedModelMetaclass(ModelBase):
 
         else:
 
-            def _get_fields(
+            def _get_fields(  # type: ignore[no-redef]  # pyright: ignore[reportRedeclaration]
                 self,
                 forward=True,
                 reverse=True,
@@ -526,7 +527,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
 
         current_cls = self.__class__
 
-        if current_cls != correct_cls:
+        if current_cls is not correct_cls:
             self.__class__ = correct_cls
 
     def save(self, *args, **kwargs) -> None:
@@ -562,7 +563,7 @@ def _get_dump_object(self, obj: "Model") -> dict:
     if isinstance(obj, TypedModel):
         return {
             "pk": smart_str(obj._get_pk_val(), strings_only=True),
-            "model": smart_str(getattr(obj, "base_class", obj)._meta),
+            "model": smart_str((obj.base_class or obj)._meta),
             "fields": self._current,
         }
     else:
@@ -578,7 +579,7 @@ def _start_object(self, obj: "Model") -> None:
     if isinstance(obj, TypedModel):
         self.indent(1)
         obj_pk = obj._get_pk_val()
-        modelname = smart_str(getattr(obj, "base_class", obj)._meta)
+        modelname = smart_str((obj.base_class or obj)._meta)
         if obj_pk is None:
             attrs = {
                 "model": modelname,
