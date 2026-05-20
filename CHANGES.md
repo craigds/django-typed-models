@@ -2,9 +2,13 @@
 
 Backward-incompatible changes for released versions are listed here (for 0.5 onwards.)
 
-## 0.16.1
+## 0.16.2
 
 * Dropped unnecessary django-stubs-ext dependency
+
+## 0.16.1
+
+(yanked; was broken)
 
 ## 0.16.0
 

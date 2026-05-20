@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import builtins
 import types
 import typing
@@ -42,7 +44,7 @@ class TypedModelMetaclass(ModelBase):
     This metaclass enables a model for auto-downcasting using a ``type`` attribute.
     """
 
-    def __new__(mcs, classname, bases, classdict) -> type["TypedModel"]:
+    def __new__(mcs, classname, bases, classdict) -> type[TypedModel]:
         try:
             TypedModel  # noqa: B018  # pyright: ignore[reportUnusedExpression]
         except NameError:
@@ -228,7 +230,7 @@ class TypedModelMetaclass(ModelBase):
 
             # add a get_type_classes classmethod to allow fetching of all the subclasses (useful for admin)
 
-            def _get_type_classes(subcls) -> list[type["TypedModel"]]:
+            def _get_type_classes(subcls) -> list[type[TypedModel]]:
                 """
                 Returns a list of the classes which are proxy subtypes of this concrete typed model.
                 """
@@ -361,11 +363,11 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
     _typedmodels_type: ClassVar[str]
     _typedmodels_subtypes: ClassVar[list[str]]
     # NB: builtins.type used because `type` is shadowed by the CharField below.
-    _typedmodels_registry: ClassVar["dict[str, builtins.type[TypedModel]]"]
+    _typedmodels_registry: ClassVar[dict[str, builtins.type[TypedModel]]]
     _meta: ClassVar[TypedModelOptions]
     # Set by the metaclass to the non-proxy TypedModel ancestor (or None on the
     # base class itself). Declared here so type-checkers can see it on instances.
-    base_class: ClassVar["builtins.type[TypedModel] | None"]
+    base_class: ClassVar[builtins.type[TypedModel] | None]
 
     objects: ClassVar[TypedModelManager[Self]] = TypedModelManager()
 
@@ -413,7 +415,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         return new
 
     @classmethod
-    def get_type_classes(cls) -> "list[builtins.type[Self]]":
+    def get_type_classes(cls) -> list[builtins.type[Self]]:
         """
         Returns a list of the classes which are proxy subtypes of this concrete typed model.
         """
@@ -427,7 +429,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         """
         return cls._get_types()  # type: ignore
 
-    def __new__(cls, *args: Any, **kwargs: Any) -> "TypedModel":
+    def __new__(cls, *args: Any, **kwargs: Any) -> TypedModel:
         # If a `type` kwarg names a registered subclass, allocate that subclass
         # directly instead of constructing `cls` and mutating `__class__` via
         # recast() afterwards. Positional construction (e.g. from from_db) is
@@ -477,7 +479,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         if _typedmodels_do_recast:
             self.recast()
 
-    def recast(self, typ: builtins.type["TypedModel"] | None = None) -> None:
+    def recast(self, typ: builtins.type[TypedModel] | None = None) -> None:
         for base in reversed(self.__class__.mro()):
             if issubclass(base, TypedModel) and hasattr(base, "_typedmodels_registry"):
                 break
@@ -552,7 +554,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
 _python_serializer_get_dump_object = _PythonSerializer.get_dump_object
 
 
-def _get_dump_object(self, obj: "Model") -> dict:
+def _get_dump_object(self, obj: Model) -> dict:
     if isinstance(obj, TypedModel):
         return {
             "pk": smart_str(obj._get_pk_val(), strings_only=True),
@@ -568,7 +570,7 @@ _PythonSerializer.get_dump_object = _get_dump_object  # type: ignore
 _xml_serializer_start_object = _XmlSerializer.start_object
 
 
-def _start_object(self, obj: "Model") -> None:
+def _start_object(self, obj: Model) -> None:
     if isinstance(obj, TypedModel):
         self.indent(1)
         obj_pk = obj._get_pk_val()
