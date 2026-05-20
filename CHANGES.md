@@ -2,6 +2,10 @@
 
 Backward-incompatible changes for released versions are listed here (for 0.5 onwards.)
 
+## 0.16.1
+
+* Dropped unnecessary django-stubs-ext dependency
+
 ## 0.16.0
 
 * Dropped support for Django 4.2 and 5.1 (EOL)
