@@ -17,10 +17,6 @@ from typing_extensions import Self
 
 if typing.TYPE_CHECKING:
     from django.db.models import Model, QuerySet
-else:
-    from django_stubs_ext import QuerySetAny as QuerySet
-
-    reveal_type = print
 
 
 T = TypeVar("T", bound="TypedModel", covariant=True)
