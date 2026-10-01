@@ -186,3 +186,21 @@ class SubModelB(BaseModelWithIndex):
 
     class Meta(BaseModelWithIndex.Meta):
         verbose_name = "Sub Model B"
+
+
+# A foreign key on a typed base class, so a cascade collects several subclasses in one batch
+class Kennel(models.Model):
+    name = models.CharField(max_length=100)
+
+
+class Pet(TypedModel):
+    kennel = models.ForeignKey(Kennel, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+
+
+class Dog(Pet):
+    pass
+
+
+class Cat(Pet):
+    pass

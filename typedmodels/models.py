@@ -3,7 +3,8 @@ from __future__ import annotations
 import builtins
 import types
 import typing
-from functools import partial
+import weakref
+from functools import cache, partial
 from typing import Any, ClassVar, TypeVar, cast
 
 from django.core.exceptions import FieldDoesNotExist, FieldError
@@ -11,9 +12,12 @@ from django.core.serializers.python import Serializer as _PythonSerializer
 from django.core.serializers.xml_serializer import Serializer as _XmlSerializer
 from django.db import models
 from django.db.models.base import DEFERRED, ModelBase  # type: ignore
+from django.db.models.deletion import Collector
 from django.db.models.fields import Field
 from django.db.models.fields.related import RelatedField
 from django.db.models.options import Options, make_immutable_fields_list
+from django.db.models.signals import ModelSignal
+from django.dispatch.dispatcher import NO_RECEIVERS, NONE_ID, _make_id  # type: ignore
 from django.utils.encoding import smart_str
 from typing_extensions import Self
 
@@ -589,3 +593,104 @@ def _start_object(self, obj: Model) -> None:
 
 
 _XmlSerializer.start_object = _start_object  # type: ignore
+
+
+# Monkey patching model signals so that receivers follow the typed class hierarchy:
+# * a signal sent for a subclass also reaches receivers connected to its typed ancestors
+#   (a Feline is an Animal)
+# * has_listeners() for a class also counts receivers connected to its subclasses, since
+#   instances fetched through that class are subclass instances. Django skips signals when
+#   cascade-deleting a model without listeners, so receivers on subclasses never ran.
+_signal_live_receivers = ModelSignal._live_receivers
+_signal_has_listeners = ModelSignal.has_listeners
+
+
+@cache
+def _typed_signal_senders(sender: type[TypedModel]) -> tuple[type[TypedModel], ...]:
+    base_class = sender.base_class
+    assert base_class is not None
+    return tuple(
+        cls for cls in sender.__mro__ if isinstance(cls, type) and issubclass(cls, base_class)
+    )
+
+
+def _live_receivers(self, sender):
+    if not (isinstance(sender, type) and issubclass(sender, TypedModel) and sender.base_class):
+        return _signal_live_receivers(self, sender)
+
+    # Same as Signal._live_receivers, but matching receivers connected to any typed ancestor.
+    # The merged list is cached under `sender`, which send() also checks for NO_RECEIVERS.
+    receivers = None
+    if self.use_caching and not self._dead_receivers:
+        receivers = self.sender_receivers_cache.get(sender)
+        if receivers is NO_RECEIVERS:
+            return [], []
+    if receivers is None:
+        with self.lock:
+            self._clear_dead_receivers()
+            sender_keys = {NONE_ID, *(_make_id(cls) for cls in _typed_signal_senders(sender))}
+            # entries are ((receiver_key, sender_key), receiver, [sender_ref,] is_async);
+            # sender_ref was added in Django 6.0
+            receivers = [entry[1:] for entry in self.receivers if entry[0][1] in sender_keys]
+            if self.use_caching:
+                self.sender_receivers_cache[sender] = receivers or NO_RECEIVERS
+
+    sync_receivers: list = []
+    async_receivers: list = []
+    for entry in receivers:
+        receiver, is_async = entry[0], entry[-1]
+        if isinstance(receiver, weakref.ReferenceType):
+            receiver = receiver()
+            if receiver is None:
+                continue
+        if len(entry) == 3 and entry[1] is not None and entry[1]() is None:
+            continue
+        target = async_receivers if is_async else sync_receivers
+        # a receiver connected to both a class and its ancestor is called once
+        if receiver not in target:
+            target.append(receiver)
+    return sync_receivers, async_receivers
+
+
+def _has_listeners(self, sender=None) -> bool:
+    if _signal_has_listeners(self, sender):
+        return True
+    if isinstance(sender, type) and issubclass(sender, TypedModel):
+        registry = getattr(sender, "_typedmodels_registry", None)
+        if registry is not None:
+            return any(
+                _signal_has_listeners(self, cls)
+                for cls in sender.get_type_classes()
+                if cls is not sender
+            )
+    return False
+
+
+ModelSignal._live_receivers = _live_receivers  # type: ignore
+ModelSignal.has_listeners = _has_listeners  # type: ignore
+
+
+# Monkey patching the deletion Collector, which files every object in a batch under the first
+# object's class and sends their delete signals with that class as sender. A cascade to a
+# typed model collects instances of several subclasses in one batch.
+_collector_add = Collector.add
+
+
+def _add(self, objs, source=None, nullable=False, reverse_dependency=False):
+    if not objs or not isinstance(objs[0], TypedModel):
+        return _collector_add(self, objs, source, nullable, reverse_dependency)
+    by_class: dict[type, list[Model]] = {}
+    for obj in objs:
+        by_class.setdefault(type(obj), []).append(obj)
+    if len(by_class) == 1:
+        return _collector_add(self, objs, source, nullable, reverse_dependency)
+    new_objs = []
+    for batch in by_class.values():
+        # django-stubs' _IndexableCollection rejects list (slicing must return Self)
+        new_objs.extend(
+            _collector_add(self, batch, source, nullable, reverse_dependency)  # pyright: ignore[reportArgumentType]
+        )
+    return new_objs
+
+
+Collector.add = _add  # type: ignore
