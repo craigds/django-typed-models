@@ -1,6 +1,7 @@
 import pytest
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
+from django.db.models import signals
 
 try:
     import yaml
@@ -482,3 +483,37 @@ def test_base_model_with_indexes(db):
     assert SubModelA.objects.count() == 1
     assert SubModelB.objects.count() == 1
     assert BaseModelWithIndex.objects.count() == 2
+
+
+@pytest.mark.parametrize(
+    "make",
+    [
+        pytest.param(lambda: Feline(name="kitteh"), id="constructed"),
+        pytest.param(lambda: Feline.objects.get(name="kitteh"), id="loaded"),
+        pytest.param(lambda: Animal.objects.get(name="kitteh"), id="loaded-via-base"),
+    ],
+)
+def test_init_signals_sent_for_subclass(db, make):
+    """
+    pre_init and post_init are sent with the instance's own class as sender, like pre_save
+    and post_save.
+    """
+    Feline.objects.create(name="kitteh")
+    senders = []
+
+    def pre_init_receiver(sender, **kwargs):
+        senders.append(("pre_init", sender))
+
+    def post_init_receiver(sender, instance, **kwargs):
+        senders.append(("post_init", sender))
+
+    signals.pre_init.connect(pre_init_receiver, sender=Feline)
+    signals.post_init.connect(post_init_receiver, sender=Feline)
+    try:
+        obj = make()
+    finally:
+        signals.pre_init.disconnect(pre_init_receiver, sender=Feline)
+        signals.post_init.disconnect(post_init_receiver, sender=Feline)
+
+    assert type(obj) is Feline
+    assert senders == [("pre_init", Feline), ("post_init", Feline)]

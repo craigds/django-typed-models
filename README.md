@@ -130,6 +130,7 @@ class FelineAdmin(TypedModelAdmin):
 
 * Since all objects are stored in the same table, all fields defined in subclasses are nullable.
 * Fields defined on subclasses can only be defined on *one* subclass, unless the duplicate fields are exactly identical.
+* While `post_init` receivers run, `instance._meta` is the base class's `_meta`, not the subclass's.
 
 
 ## Requirements

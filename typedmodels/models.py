@@ -454,21 +454,19 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
             kwargs[field.attname] = field_value
         args = ()  # args were all converted to kwargs
 
-        # Bind via the base class so that fields defined on sibling subclasses
+        # Bind via the base class's _meta so that fields defined on sibling subclasses
         # (and therefore present in the shared table) are still recognised.
         # The subclass `_meta` is filtered by _patch_fields_cache.
+        # Shadowing _meta on the instance (rather than reassigning __class__) keeps
+        # pre_init/post_init sent with the instance's own class as sender.
         if self.base_class:
-            before_class = self.__class__
-            # __class__ is reassigned here (and below) to route super().__init__
-            # via the base class's unfiltered _meta. Type-checkers reasonably
-            # don't like this; the mechanism is core to how typedmodels exploits
-            # Django's Model layout.
-            self.__class__ = self.base_class  # pyright: ignore[reportAttributeAccessIssue]
+            setattr(self, "_meta", self.base_class._meta)  # noqa: B010 (ClassVar)
+            try:
+                super().__init__(*args, **kwargs)
+            finally:
+                delattr(self, "_meta")
         else:
-            before_class = None
-        super().__init__(*args, **kwargs)
-        if before_class:
-            self.__class__ = before_class
+            super().__init__(*args, **kwargs)
 
         # __new__ has already resolved the typed subclass from the `type`
         # kwarg, so for the common kwargs-construction path this is a no-op.
