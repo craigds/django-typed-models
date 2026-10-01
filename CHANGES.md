@@ -17,6 +17,31 @@ Backward-incompatible changes for released versions are listed here (for 0.5 onw
   Feline.objects.create(name="kitteh")  # now calls my_receiver(sender=Feline, ...)
   ```
 
+  If a base class receiver should only run for base class instances, check the sender:
+
+  ```python
+  @receiver(post_save, sender=Animal)
+  def my_receiver(sender, instance, **kwargs):
+      if sender is not Animal:
+          return
+      ...
+  ```
+
+  If you connected different receivers to the base class and its subclasses, the base class receiver now also runs for subclass instances, so work they both do happens twice.
+  Remove the duplication, e.g. by connecting once to the base class:
+
+  ```python
+  # before
+  post_save.connect(index_animal, sender=Animal)
+  for sender in Animal.get_type_classes():
+      post_save.connect(index_animal_subclass, sender=sender)
+
+  # after: index_animal handles every Animal
+  post_save.connect(index_animal, sender=Animal)
+  ```
+
+  Connecting the same receiver to each subclass, as in the old workaround, needs no change.
+
 * `pre_delete`/`post_delete` receivers connected only to a subclass now fire when a cascade deletes its instances ([#30](https://github.com/craigds/django-typed-models/issues/30)).
   Django skipped these signals (and bulk-deleted the rows) because the related model, the base class, had no receivers of its own.
   Such cascades now fetch the rows first.
