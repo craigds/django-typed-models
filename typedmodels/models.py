@@ -12,6 +12,7 @@ from django.core.serializers.python import Serializer as _PythonSerializer
 from django.core.serializers.xml_serializer import Serializer as _XmlSerializer
 from django.db import models
 from django.db.models.base import DEFERRED, ModelBase  # type: ignore
+from django.db.models.deletion import Collector
 from django.db.models.fields import Field
 from django.db.models.fields.related import RelatedField
 from django.db.models.options import Options, make_immutable_fields_list
@@ -667,3 +668,29 @@ def _has_listeners(self, sender=None) -> bool:
 
 ModelSignal._live_receivers = _live_receivers  # type: ignore
 ModelSignal.has_listeners = _has_listeners  # type: ignore
+
+
+# Monkey patching the deletion Collector, which files every object in a batch under the first
+# object's class and sends their delete signals with that class as sender. A cascade to a
+# typed model collects instances of several subclasses in one batch.
+_collector_add = Collector.add
+
+
+def _add(self, objs, source=None, nullable=False, reverse_dependency=False):
+    if not objs or not isinstance(objs[0], TypedModel):
+        return _collector_add(self, objs, source, nullable, reverse_dependency)
+    by_class: dict[type, list[Model]] = {}
+    for obj in objs:
+        by_class.setdefault(type(obj), []).append(obj)
+    if len(by_class) == 1:
+        return _collector_add(self, objs, source, nullable, reverse_dependency)
+    new_objs = []
+    for batch in by_class.values():
+        # django-stubs' _IndexableCollection rejects list (slicing must return Self)
+        new_objs.extend(
+            _collector_add(self, batch, source, nullable, reverse_dependency)  # pyright: ignore[reportArgumentType]
+        )
+    return new_objs
+
+
+Collector.add = _add  # type: ignore

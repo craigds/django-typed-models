@@ -20,6 +20,8 @@ Backward-incompatible changes for released versions are listed here (for 0.5 onw
 * `pre_delete`/`post_delete` receivers connected only to a subclass now fire when a cascade deletes its instances ([#30](https://github.com/craigds/django-typed-models/issues/30)).
   Django skipped these signals (and bulk-deleted the rows) because the related model, the base class, had no receivers of its own.
   Such cascades now fetch the rows first.
+* Objects of different subclasses deleted in one cascade now each get delete signals with their own class as sender.
+  Django sent them all with the first object's class. `delete()`'s per-model counts are split by subclass to match.
 
 ## 0.16.2
 

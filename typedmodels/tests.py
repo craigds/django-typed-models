@@ -21,11 +21,14 @@ from testapp.models import (
     BaseModelWithIndex,
     BigCat,
     Canine,
+    Cat,
     Child1,
     Child2,
+    Dog,
     Employee,
     Feline,
     Fruit,
+    Kennel,
     Parrot,
     SubModelA,
     SubModelB,
@@ -598,3 +601,37 @@ def test_cascade_delete_sends_signals_for_subclass_receivers(db, connect):
     target.delete()
 
     assert sorted(calls) == [(Child1, "c"), (Child1, "t")]
+
+
+def test_cascade_delete_of_mixed_subclasses(db, connect):
+    """
+    Each instance in a cascade is sent with its own class as sender, though Django collects
+    them in one batch.
+    """
+    kennel = Kennel.objects.create(name="k")
+    Dog.objects.create(kennel=kennel, name="fido")
+    Cat.objects.create(kennel=kennel, name="kitteh")
+    calls = []
+
+    def receiver(sender, instance, **kwargs):
+        calls.append(
+            (kwargs["signal"] is signals.pre_delete, sender, type(instance), instance.name)
+        )
+
+    for signal in (signals.pre_delete, signals.post_delete):
+        connect(signal, receiver, Dog)
+        connect(signal, receiver, Cat)
+
+    count, per_model = kennel.delete()
+
+    assert sorted(calls, key=repr) == sorted(
+        [
+            (True, Dog, Dog, "fido"),
+            (False, Dog, Dog, "fido"),
+            (True, Cat, Cat, "kitteh"),
+            (False, Cat, Cat, "kitteh"),
+        ],
+        key=repr,
+    )
+    assert count == 3
+    assert per_model == {"testapp.Kennel": 1, "testapp.Dog": 1, "testapp.Cat": 1}
