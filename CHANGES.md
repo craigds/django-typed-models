@@ -6,6 +6,7 @@ Backward-incompatible changes for released versions are listed here (for 0.5 onw
 
 * `pre_init` and `post_init` are now sent with the instance's own class as sender, matching `pre_save` and `post_save`.
   Previously they were sent with the base class, so receivers connected to a subclass (including django-fieldsignals' change tracking) never fired.
+  While `post_init` receivers run, `instance._meta` is still the base class's `_meta`.
   **Backward-incompatible:** `pre_init`/`post_init` receivers connected to the base class no longer fire for subclass instances; connect them to each subclass (`get_type_classes()`) instead:
 
   ```python
