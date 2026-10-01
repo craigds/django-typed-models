@@ -21,6 +21,7 @@ from testapp.models import (
     BaseModelWithIndex,
     BigCat,
     Canine,
+    Child1,
     Child2,
     Employee,
     Feline,
@@ -517,3 +518,83 @@ def test_init_signals_sent_for_subclass(db, make):
 
     assert type(obj) is Feline
     assert senders == [("pre_init", Feline), ("post_init", Feline)]
+
+
+@pytest.fixture
+def connect():
+    connected = []
+
+    def _connect(signal, receiver, sender):
+        signal.connect(receiver, sender=sender)
+        connected.append((signal, receiver, sender))
+
+    yield _connect
+    for signal, receiver, sender in connected:
+        signal.disconnect(receiver, sender=sender)
+
+
+def test_signal_reaches_receivers_on_typed_ancestors(db, connect):
+    """
+    https://github.com/craigds/django-typed-models/issues/1
+    """
+    calls = []
+
+    def receiver(sender, instance, **kwargs):
+        calls.append((sender, instance.name))
+
+    connect(signals.post_save, receiver, Animal)
+    connect(signals.post_save, receiver, Feline)
+
+    AngryBigCat.objects.create(name="mufasa")
+    AngryBigCat.objects.create(name="scar")
+    Canine.objects.create(name="fido")
+
+    # once each, even though the receiver is connected to both Animal and Feline
+    assert calls == [(AngryBigCat, "mufasa"), (AngryBigCat, "scar"), (Canine, "fido")]
+
+
+def test_signal_doesnt_reach_receivers_on_subclasses(db, connect):
+    calls = []
+
+    def receiver(sender, instance, **kwargs):
+        calls.append(sender)
+
+    connect(signals.post_save, receiver, BigCat)
+
+    Feline.objects.create(name="kitteh")
+    Canine.objects.create(name="fido")
+
+    assert calls == []
+
+
+def test_has_listeners_counts_subclass_receivers(connect):
+    assert not signals.post_delete.has_listeners(Animal)
+
+    def receiver(**kwargs):
+        pass
+
+    connect(signals.post_delete, receiver, BigCat)
+
+    assert signals.post_delete.has_listeners(Animal)
+    assert signals.post_delete.has_listeners(Feline)
+    assert signals.post_delete.has_listeners(BigCat)
+    assert signals.post_delete.has_listeners(AngryBigCat)
+    assert not signals.post_delete.has_listeners(Canine)
+
+
+def test_cascade_delete_sends_signals_for_subclass_receivers(db, connect):
+    """
+    https://github.com/craigds/django-typed-models/issues/30
+    """
+    target = Child1.objects.create(a="t")
+    Child1.objects.create(a="c", b=target)
+    calls = []
+
+    def receiver(sender, instance, **kwargs):
+        calls.append((sender, instance.a))
+
+    connect(signals.post_delete, receiver, Child1)
+
+    target.delete()
+
+    assert sorted(calls) == [(Child1, "c"), (Child1, "t")]

@@ -7,17 +7,19 @@ Backward-incompatible changes for released versions are listed here (for 0.5 onw
 * `pre_init` and `post_init` are now sent with the instance's own class as sender, matching `pre_save` and `post_save`.
   Previously they were sent with the base class, so receivers connected to a subclass (including django-fieldsignals' change tracking) never fired.
   While `post_init` receivers run, `instance._meta` is still the base class's `_meta`.
-  **Backward-incompatible:** `pre_init`/`post_init` receivers connected to the base class no longer fire for subclass instances; connect them to each subclass (`get_type_classes()`) instead:
+* Model signals sent for a subclass now also reach receivers connected to its typed ancestors ([#1](https://github.com/craigds/django-typed-models/issues/1)).
+  A receiver connected to both a class and its ancestor (the old workaround) is still called once.
+  **Backward-incompatible:** receivers connected to the base class now also fire for subclass instances, with the subclass as sender:
 
   ```python
-  # before
-  post_init.connect(my_receiver, sender=Animal)
+  post_save.connect(my_receiver, sender=Animal)
 
-  # after
-  for sender in Animal.get_type_classes():
-      post_init.connect(my_receiver, sender=sender)
+  Feline.objects.create(name="kitteh")  # now calls my_receiver(sender=Feline, ...)
   ```
 
+* `pre_delete`/`post_delete` receivers connected only to a subclass now fire when a cascade deletes its instances ([#30](https://github.com/craigds/django-typed-models/issues/30)).
+  Django skipped these signals (and bulk-deleted the rows) because the related model, the base class, had no receivers of its own.
+  Such cascades now fetch the rows first.
 
 ## 0.16.2
 
