@@ -461,17 +461,17 @@ def test_base_model_with_indexes(db):
     assert SubModelB._meta.proxy is True
 
     # The base model should have the index in its _meta
-    assert (
-        len(BaseModelWithIndex._meta.indexes) == 1
-    ), "Base model should have its index defined in _meta"
+    assert len(BaseModelWithIndex._meta.indexes) == 1, (
+        "Base model should have its index defined in _meta"
+    )
 
     # Proxy models should NOT have indexes in their _meta (they share the base table)
-    assert (
-        len(SubModelA._meta.indexes) == 0
-    ), "Proxy models shouldn't have indexes in _meta (they use the base model's table)"
-    assert (
-        len(SubModelB._meta.indexes) == 0
-    ), "Proxy models shouldn't have indexes in _meta (they use the base model's table)"
+    assert len(SubModelA._meta.indexes) == 0, (
+        "Proxy models shouldn't have indexes in _meta (they use the base model's table)"
+    )
+    assert len(SubModelB._meta.indexes) == 0, (
+        "Proxy models shouldn't have indexes in _meta (they use the base model's table)"
+    )
 
     # Verify the models work at runtime
     obj_a = SubModelA.objects.create(name="test_a", tag="tag1", field_a="a_value")

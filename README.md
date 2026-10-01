@@ -24,32 +24,33 @@ Licensed under the New BSD License.
 An example says a bunch of words:
 
 ```python
-
 # myapp/models.py
 
 from django.db import models
 from typedmodels.models import TypedModel
 
+
 class Animal(TypedModel):
     """
     Abstract model
     """
+
     name = models.CharField(max_length=255)
 
     def say_something(self):
         raise NotImplemented
 
     def __repr__(self):
-        return u'<%s: %s>' % (self.__class__.__name__, self.name)
+        return "<%s: %s>" % (self.__class__.__name__, self.name)
+
 
 class Canine(Animal):
     def say_something(self):
         return "woof"
 
+
 class Feline(Animal):
-    mice_eaten = models.IntegerField(
-        default = 0
-        )
+    mice_eaten = models.IntegerField(default=0)
 
     def say_something(self):
         return "meoww"
@@ -75,7 +76,7 @@ Later:
 You can actually change the types of objects. Simply run an update query:
 
 ```python
-Feline.objects.update(type='myapp.bigcat')
+Feline.objects.update(type="myapp.bigcat")
 ```
 
 If you want to change the type of an object without refreshing it from the database, you can call ``recast``:
@@ -109,13 +110,16 @@ from django.contrib import admin
 from typedmodels.admin import TypedModelAdmin
 from .models import Animal, Canine, Feline
 
+
 @admin.register(Animal)
 class AnimalAdmin(TypedModelAdmin):
     pass
 
+
 @admin.register(Canine)
 class CanineAdmin(TypedModelAdmin):
     pass
+
 
 @admin.register(Feline)
 class FelineAdmin(TypedModelAdmin):
