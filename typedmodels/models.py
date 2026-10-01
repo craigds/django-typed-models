@@ -380,7 +380,7 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         abstract = True
 
     @classmethod
-    def from_db(cls, db, field_names, values):
+    def from_db(cls, db, field_names, values, *, fetch_mode=None):
         # Called when django instantiates a model class from a queryset.
         # Resolve the correct subclass from the row's `type` value and
         # instantiate it directly, instead of constructing `cls` and mutating
@@ -412,6 +412,9 @@ class TypedModel(models.Model, metaclass=TypedModelMetaclass):
         new = target_cls(*values, _typedmodels_do_recast=False)
         new._state.adding = False
         new._state.db = db
+        if fetch_mode is not None:
+            # Django 6.1+
+            new._state.fetch_mode = fetch_mode  # pyright: ignore[reportAttributeAccessIssue]
         return new
 
     @classmethod
