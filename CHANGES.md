@@ -2,7 +2,7 @@
 
 Backward-incompatible changes for released versions are listed here (for 0.5 onwards.)
 
-## 0.17.0 (unreleased)
+## 0.17.0
 
 * `pre_init` and `post_init` are now sent with the instance's own class as sender, matching `pre_save` and `post_save`.
   Previously they were sent with the base class, so receivers connected to a subclass (including django-fieldsignals' change tracking) never fired.
