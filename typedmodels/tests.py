@@ -493,21 +493,27 @@ def test_base_model_with_indexes(db):
         pytest.param(lambda: Animal.objects.get(name="kitteh"), id="loaded-via-base"),
     ],
 )
-def test_post_init_sent_for_subclass(db, make):
+def test_init_signals_sent_for_subclass(db, make):
     """
-    post_init is sent with the instance's own class as sender, like pre_save and post_save.
+    pre_init and post_init are sent with the instance's own class as sender, like pre_save
+    and post_save.
     """
     Feline.objects.create(name="kitteh")
     senders = []
 
-    def receiver(sender, instance, **kwargs):
-        senders.append(sender)
+    def pre_init_receiver(sender, **kwargs):
+        senders.append(("pre_init", sender))
 
-    signals.post_init.connect(receiver, sender=Feline)
+    def post_init_receiver(sender, instance, **kwargs):
+        senders.append(("post_init", sender))
+
+    signals.pre_init.connect(pre_init_receiver, sender=Feline)
+    signals.post_init.connect(post_init_receiver, sender=Feline)
     try:
         obj = make()
     finally:
-        signals.post_init.disconnect(receiver, sender=Feline)
+        signals.pre_init.disconnect(pre_init_receiver, sender=Feline)
+        signals.post_init.disconnect(post_init_receiver, sender=Feline)
 
     assert type(obj) is Feline
-    assert senders == [Feline]
+    assert senders == [("pre_init", Feline), ("post_init", Feline)]
